@@ -189,6 +189,7 @@ public class VideoCastManager extends BaseCastManager
     private MediaAuthService mAuthService;
     private long mLiveStreamDuration = DEFAULT_LIVE_STREAM_DURATION_MS;
     private MediaQueueItem mPreLoadingItem;
+    private MiniControllerUpdater miniControllerUpdater;
 
     public static final int QUEUE_OPERATION_LOAD = 1;
     public static final int QUEUE_OPERATION_INSERT_ITEMS = 2;
@@ -292,10 +293,16 @@ public class VideoCastManager extends BaseCastManager
             MediaMetadata mm = mediaInfo.getMetadata();
             controller.setStreamType(mediaInfo.getStreamType());
             controller.setPlaybackStatus(mState, mIdleReason);
-            controller.setSubtitle(mContext.getResources().getString(R.string.ccl_casting_to_device,
-                    mDeviceName));
-            controller.setTitle(mm.getString(MediaMetadata.KEY_TITLE));
-            controller.setIcon(Utils.getImageUri(mediaInfo, 0));
+            updateProgress();
+            if (miniControllerUpdater != null) {
+                miniControllerUpdater.updateMiniController(controller, mediaInfo);
+            } else {
+                controller.setStreamType(mediaInfo.getStreamType());
+                controller.setSubtitle(mContext.getResources().getString(R.string.ccl_casting_to_device,
+                                                                         mDeviceName));
+                controller.setTitle(mm.getString(MediaMetadata.KEY_TITLE));
+                controller.setIcon(Utils.getImageUri(mediaInfo, 0));
+            }
         }
     }
 
@@ -374,7 +381,7 @@ public class VideoCastManager extends BaseCastManager
         LOGD(TAG, "updateMiniControllersVisibility() reached with visibility: " + visible);
         synchronized (mMiniControllers) {
             for (IMiniController controller : mMiniControllers) {
-                controller.setVisibility(visible ? View.VISIBLE : View.GONE);
+                controller.setCurrentVisibility(visible);
             }
         }
     }
@@ -1031,6 +1038,7 @@ public class VideoCastManager extends BaseCastManager
                         for (VideoCastConsumer consumer : mVideoConsumers) {
                             consumer.onMediaLoadResult(result.getStatus().getStatusCode());
                         }
+                        updateMiniControllers();
                     }
                 });
     }
@@ -2409,7 +2417,7 @@ public class VideoCastManager extends BaseCastManager
                 try {
                     if (isConnected() && isRemoteMediaLoaded()) {
                         updateMiniController(miniController);
-                        miniController.setVisibility(View.VISIBLE);
+                        miniController.setCurrentVisibility(true);
                     }
                 } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
                     LOGE(TAG, "Failed to get the status of media playback on receiver", e);
@@ -2835,31 +2843,33 @@ public class VideoCastManager extends BaseCastManager
 
         @Override
         public void run() {
-            int currentPos;
-            if (mState == MediaStatus.PLAYER_STATE_BUFFERING || !isConnected()
-                    || mRemoteMediaPlayer == null) {
-                return;
-            }
-            try {
-                int duration = (int) getMediaDuration();
-                if (duration > 0) {
-                    currentPos = (int) getCurrentMediaPosition();
-                    updateProgress(currentPos, duration);
-                }
-            } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
-                LOGE(TAG, "Failed to update the progress tracker due to network issues", e);
-            }
+            updateProgress();
         }
     }
 
     /**
      * <b>Note:</b> This is called on a worker thread
      */
-    private void updateProgress(int currentPosition, int duration) {
-        synchronized (mMiniControllers) {
-            for (final IMiniController controller : mMiniControllers) {
-                controller.setProgress(currentPosition, duration);
+    private void updateProgress() {
+
+        if (mState == MediaStatus.PLAYER_STATE_BUFFERING || !isConnected()
+            || mRemoteMediaPlayer == null) {
+            return;
+        }
+        try {
+            int duration = (int) getMediaDuration();
+            int currentPos;
+            if (duration > 0) {
+                currentPos = (int) getCurrentMediaPosition();
+
+                synchronized (mMiniControllers) {
+                    for (final IMiniController controller : mMiniControllers) {
+                        controller.setProgress(currentPos, duration);
+                    }
+                }
             }
+        } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+            LOGE(TAG, "Failed to update the progress tracker due to network issues", e);
         }
     }
 
@@ -2896,4 +2906,11 @@ public class VideoCastManager extends BaseCastManager
         mPreferenceAccessor.saveBooleanToPreference(PREFS_KEY_IMMERSIVE_MODE, mode);
     }
 
+    public interface MiniControllerUpdater {
+        void updateMiniController(IMiniController controller, MediaInfo mediaInfo);
+    }
+
+    public void setMiniControllerUpdater(MiniControllerUpdater updater) {
+        miniControllerUpdater = updater;
+    }
 }
