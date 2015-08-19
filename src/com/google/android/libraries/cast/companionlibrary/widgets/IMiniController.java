@@ -104,5 +104,6 @@ public interface IMiniController {
      */
     public void setCurrentVisibility(boolean visible);
 
+    public void setSubtitleButtonVisibility(boolean visible);
 
 }

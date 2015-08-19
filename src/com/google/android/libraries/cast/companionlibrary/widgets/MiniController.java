@@ -148,13 +148,18 @@ public class MiniController extends RelativeLayout implements IMiniController {
         }
         mProgressBar.setVisibility(
                 visible && (mStreamType != MediaInfo.STREAM_TYPE_LIVE) ? View.VISIBLE
-                        : View.INVISIBLE);
+                                                                       : View.INVISIBLE);
     }
 
     @Override
     public void setUpcomingVisibility(boolean visible) {
         mUpcomingContainer.setVisibility(visible ? View.VISIBLE : View.GONE);
         setProgressVisibility(!visible);
+    }
+
+    @Override
+    public void setSubtitleButtonVisibility(boolean visible) {
+
     }
 
     @Override
