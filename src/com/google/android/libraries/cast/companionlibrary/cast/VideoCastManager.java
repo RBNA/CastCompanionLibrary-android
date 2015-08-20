@@ -233,7 +233,7 @@ public class VideoCastManager extends BaseCastManager
                 mTargetActivity.getName());
         if (!TextUtils.isEmpty(mDataNamespace)) {
             mPreferenceAccessor.saveStringToPreference(PREFS_KEY_CAST_CUSTOM_DATA_NAMESPACE,
-                    dataNamespace);
+                                                       dataNamespace);
         }
 
         mAudioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
@@ -877,7 +877,7 @@ public class VideoCastManager extends BaseCastManager
     protected void onApplicationConnected(ApplicationMetadata appMetadata,
             String applicationStatus, String sessionId, boolean wasLaunched) {
         LOGD(TAG, "onApplicationConnected() reached with sessionId: " + sessionId
-                + ", and mReconnectionStatus=" + mReconnectionStatus);
+                  + ", and mReconnectionStatus=" + mReconnectionStatus);
 
         if (mReconnectionStatus == RECONNECTION_STATUS_IN_PROGRESS) {
             // we have tried to reconnect and successfully launched the app, so
@@ -1028,6 +1028,10 @@ public class VideoCastManager extends BaseCastManager
         if (mRemoteMediaPlayer == null) {
             LOGE(TAG, "Trying to load a video with no active media session");
             throw new NoConnectionException();
+        }
+
+        for (VideoCastConsumer consumer : mVideoConsumers) {
+            consumer.onMediaLoadStarted(media);
         }
 
         mRemoteMediaPlayer.load(mApiClient, media, autoPlay, position, activeTracks, customData)
@@ -1286,7 +1290,7 @@ public class VideoCastManager extends BaseCastManager
                     public void onResult(MediaChannelResult result) {
                         for (VideoCastConsumer consumer : mVideoConsumers) {
                             consumer.onMediaQueueOperationResult(QUEUE_OPERATION_REMOVE_ITEM,
-                                    result.getStatus().getStatusCode());
+                                                                 result.getStatus().getStatusCode());
                         }
                     }
                 });
@@ -1410,7 +1414,7 @@ public class VideoCastManager extends BaseCastManager
                             public void onResult(MediaChannelResult result) {
                                 for (VideoCastConsumer consumer : mVideoConsumers) {
                                     consumer.onMediaQueueOperationResult(QUEUE_OPERATION_APPEND,
-                                            result.getStatus().getStatusCode());
+                                                                         result.getStatus().getStatusCode());
                                 }
                             }
                         });
@@ -1500,7 +1504,7 @@ public class VideoCastManager extends BaseCastManager
                     "item cannot be empty or insertBeforeItemId cannot be invalid");
         }
         mRemoteMediaPlayer.queueInsertItems(mApiClient, new MediaQueueItem[]{item},
-                insertBeforeItemId, customData).setResultCallback(
+                                            insertBeforeItemId, customData).setResultCallback(
                 new ResultCallback<MediaChannelResult>() {
 
                     @Override
@@ -1549,7 +1553,7 @@ public class VideoCastManager extends BaseCastManager
                         }
                         for (VideoCastConsumer consumer : mVideoConsumers) {
                             consumer.onMediaQueueOperationResult(QUEUE_OPERATION_SET_REPEAT,
-                                    result.getStatus().getStatusCode());
+                                                                 result.getStatus().getStatusCode());
                         }
                     }
                 });
@@ -1589,17 +1593,17 @@ public class VideoCastManager extends BaseCastManager
             throw new NoConnectionException();
         }
         mRemoteMediaPlayer.play(mApiClient, customData)
-                .setResultCallback(new ResultCallback<MediaChannelResult>() {
+                          .setResultCallback(new ResultCallback<MediaChannelResult>() {
 
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        if (!result.getStatus().isSuccess()) {
-                            onFailed(R.string.ccl_failed_to_play,
-                                    result.getStatus().getStatusCode());
-                        }
-                    }
+                              @Override
+                              public void onResult(MediaChannelResult result) {
+                                  if (!result.getStatus().isSuccess()) {
+                                      onFailed(R.string.ccl_failed_to_play,
+                                               result.getStatus().getStatusCode());
+                                  }
+                              }
 
-                });
+                          });
     }
 
     /**
@@ -1636,7 +1640,7 @@ public class VideoCastManager extends BaseCastManager
                     public void onResult(MediaChannelResult result) {
                         if (!result.getStatus().isSuccess()) {
                             onFailed(R.string.ccl_failed_to_stop,
-                                    result.getStatus().getStatusCode());
+                                     result.getStatus().getStatusCode());
                         }
                     }
 
@@ -1684,17 +1688,17 @@ public class VideoCastManager extends BaseCastManager
             throw new NoConnectionException();
         }
         mRemoteMediaPlayer.pause(mApiClient, customData)
-                .setResultCallback(new ResultCallback<MediaChannelResult>() {
+                          .setResultCallback(new ResultCallback<MediaChannelResult>() {
 
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        if (!result.getStatus().isSuccess()) {
-                            onFailed(R.string.ccl_failed_to_pause,
-                                    result.getStatus().getStatusCode());
-                        }
-                    }
+                              @Override
+                              public void onResult(MediaChannelResult result) {
+                                  if (!result.getStatus().isSuccess()) {
+                                      onFailed(R.string.ccl_failed_to_pause,
+                                               result.getStatus().getStatusCode());
+                                  }
+                              }
 
-                });
+                          });
     }
 
     /**
@@ -1865,7 +1869,7 @@ public class VideoCastManager extends BaseCastManager
             try {
                 LOGD(TAG, "Registering MediaChannel namespace");
                 Cast.CastApi.setMessageReceivedCallbacks(mApiClient,
-                        mRemoteMediaPlayer.getNamespace(), mRemoteMediaPlayer);
+                                                         mRemoteMediaPlayer.getNamespace(), mRemoteMediaPlayer);
             } catch (IOException | IllegalStateException e) {
                 LOGE(TAG, "reattachMediaChannel()", e);
             }
