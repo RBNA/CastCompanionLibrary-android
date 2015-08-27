@@ -1092,7 +1092,7 @@ public class VideoCastManager extends BaseCastManager
                     public void onResult(MediaChannelResult result) {
                         for (VideoCastConsumer consumer : mVideoConsumers) {
                             consumer.onMediaQueueOperationResult(QUEUE_OPERATION_LOAD,
-                                    result.getStatus().getStatusCode());
+                                                                 result.getStatus().getStatusCode());
                         }
                     }
                 });
@@ -1171,10 +1171,10 @@ public class VideoCastManager extends BaseCastManager
                     @Override
                     public void onResult(MediaChannelResult result) {
                         LOGD(TAG, "queueUpdateItems() " + result.getStatus() + result.getStatus()
-                                .isSuccess());
+                                                                                     .isSuccess());
                         for (VideoCastConsumer consumer : mVideoConsumers) {
                             consumer.onMediaQueueOperationResult(QUEUE_OPERATION_UPDATE_ITEMS,
-                                    result.getStatus().getStatusCode());
+                                                                 result.getStatus().getStatusCode());
                         }
                     }
                 });
@@ -1354,7 +1354,7 @@ public class VideoCastManager extends BaseCastManager
                             public void onResult(MediaChannelResult result) {
                                 for (VideoCastConsumer consumer : mVideoConsumers) {
                                     consumer.onMediaQueueOperationResult(QUEUE_OPERATION_REORDER,
-                                            result.getStatus().getStatusCode());
+                                                                         result.getStatus().getStatusCode());
                                 }
                             }
                         });
@@ -1443,7 +1443,7 @@ public class VideoCastManager extends BaseCastManager
                     public void onResult(MediaChannelResult result) {
                         for (VideoCastConsumer consumer : mVideoConsumers) {
                             consumer.onMediaQueueOperationResult(QUEUE_OPERATION_NEXT,
-                                    result.getStatus().getStatusCode());
+                                                                 result.getStatus().getStatusCode());
                         }
                     }
                 });
@@ -1645,7 +1645,7 @@ public class VideoCastManager extends BaseCastManager
                     }
 
                 }
-        );
+                                                                         );
     }
 
     /**
@@ -1718,8 +1718,8 @@ public class VideoCastManager extends BaseCastManager
             throw new NoConnectionException();
         }
         mRemoteMediaPlayer.seek(mApiClient,
-                position,
-                RemoteMediaPlayer.RESUME_STATE_UNCHANGED).
+                                position,
+                                RemoteMediaPlayer.RESUME_STATE_UNCHANGED).
                 setResultCallback(new ResultCallback<MediaChannelResult>() {
 
                     @Override
@@ -1881,7 +1881,7 @@ public class VideoCastManager extends BaseCastManager
         if (mRemoteMediaPlayer != null) {
             try {
                 Cast.CastApi.removeMessageReceivedCallbacks(mApiClient,
-                        mRemoteMediaPlayer.getNamespace());
+                                                            mRemoteMediaPlayer.getNamespace());
             } catch (IOException | IllegalStateException e) {
                 LOGE(TAG, "detachMediaChannel()", e);
             }
@@ -2283,14 +2283,16 @@ public class VideoCastManager extends BaseCastManager
             new FetchBitmapTask() {
                 @Override
                 protected void onPostExecute(Bitmap bitmap) {
-                    MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController()
-                            .getMetadata();
-                    MediaMetadataCompat.Builder newBuilder = currentMetadata == null
-                            ? new MediaMetadataCompat.Builder()
-                            : new MediaMetadataCompat.Builder(currentMetadata);
-                    mMediaSessionCompat.setMetadata(newBuilder
-                            .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
-                            .build());
+                    if (mMediaSessionCompat != null) {
+                        MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController()
+                                                                                 .getMetadata();
+                        MediaMetadataCompat.Builder newBuilder = currentMetadata == null
+                                                                 ? new MediaMetadataCompat.Builder()
+                                                                 : new MediaMetadataCompat.Builder(currentMetadata);
+                        mMediaSessionCompat.setMetadata(newBuilder
+                                                                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
+                                                                .build());
+                    }
                 }
             }.execute(imgUrl);
         }
