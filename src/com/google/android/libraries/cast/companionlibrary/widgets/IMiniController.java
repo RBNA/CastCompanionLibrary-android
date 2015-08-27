@@ -106,4 +106,6 @@ public interface IMiniController {
 
     public void setSubtitleButtonVisibility(boolean visible);
 
+    public void setSubtitleEnabled(boolean enabled);
+
 }

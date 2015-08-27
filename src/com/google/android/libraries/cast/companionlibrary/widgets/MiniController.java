@@ -163,6 +163,11 @@ public class MiniController extends RelativeLayout implements IMiniController {
     }
 
     @Override
+    public void setSubtitleEnabled(boolean enabled) {
+
+    }
+
+    @Override
     public void setUpcomingItem(MediaQueueItem item) {
         mUpcomingItem = item;
         if (item != null) {

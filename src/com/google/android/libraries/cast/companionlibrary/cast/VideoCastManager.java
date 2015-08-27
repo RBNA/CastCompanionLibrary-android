@@ -309,7 +309,7 @@ public class VideoCastManager extends BaseCastManager
     /*
      * Updates the information and state of all MiniControllers
      */
-    private void updateMiniControllers() {
+    public void updateMiniControllers() {
         synchronized (mMiniControllers) {
             for (final IMiniController controller : mMiniControllers) {
                 try {
