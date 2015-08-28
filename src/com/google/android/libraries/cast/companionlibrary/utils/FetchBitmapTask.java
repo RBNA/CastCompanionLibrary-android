@@ -63,6 +63,9 @@ public abstract class FetchBitmapTask extends AsyncTask<Uri, Void, Bitmap> {
             return null;
         }
 
+        final String HTTPS = "https";
+        final String HTTP = "http";
+
         Bitmap bitmap = null;
         URL url;
         try {
@@ -72,10 +75,39 @@ public abstract class FetchBitmapTask extends AsyncTask<Uri, Void, Bitmap> {
         }
         HttpURLConnection urlConnection = null;
         try {
-            urlConnection = (HttpURLConnection) url.openConnection();
-            urlConnection.setDoInput(true);
 
-            if (urlConnection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+            int responseCode = 0;
+            // Follow this link up to 3 times.
+            // Android SDK does not follow link somehow.
+
+            for (int i = 0; i < 3; i++) {
+                String urlString = url.toString();
+
+                try {
+                    urlConnection = (HttpURLConnection) url.openConnection();
+                    urlConnection.setDoInput(true);
+                    urlConnection.setUseCaches(true);
+
+                    responseCode = urlConnection.getResponseCode();
+                } catch(Exception e) {
+                    url = urlConnection.getURL();
+                    android.util.Log.i("DEBUG", "Try again with url = " + url.toString());
+                    continue;
+                }
+
+                if (responseCode != HttpURLConnection.HTTP_MOVED_TEMP &&
+                    responseCode != HttpURLConnection.HTTP_MOVED_PERM) {
+                    break;
+                }
+                String responseMessage = urlConnection.getHeaderField("Location");
+                try {
+                    url = new URL(responseMessage);
+                } catch (MalformedURLException e) {
+                    return null;
+                }
+            }
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
                 InputStream stream = new BufferedInputStream(urlConnection.getInputStream());
                 bitmap = BitmapFactory.decodeStream(stream);
                 if ((mPreferredWidth > 0) && (mPreferredHeight > 0)) {
@@ -83,10 +115,16 @@ public abstract class FetchBitmapTask extends AsyncTask<Uri, Void, Bitmap> {
                 }
             }
         } catch (IOException e) { /* ignore */
+            android.util.Log.i("DEBUG", "Failed url is " + url);
+            e.printStackTrace();
         } finally {
             if (urlConnection != null) {
                 urlConnection.disconnect();
             }
+        }
+
+        if (bitmap == null) {
+            android.util.Log.i("KKK", "Url is " + url.toString());
         }
 
         return bitmap;
