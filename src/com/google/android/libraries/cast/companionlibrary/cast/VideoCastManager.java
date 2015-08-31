@@ -19,6 +19,7 @@ package com.google.android.libraries.cast.companionlibrary.cast;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
+import android.util.Log;
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
 import com.google.android.gms.cast.Cast.CastOptions.Builder;
@@ -1072,7 +1073,7 @@ public class VideoCastManager extends BaseCastManager
      * @throws TransientNetworkDisconnectionException
      * @throws NoConnectionException
      */
-    public void queueLoad(final MediaQueueItem[] items, final int startIndex, final int repeatMode,
+    public void queueLoad(final MediaQueueItem[] items, final int startIndex, final int startPosition, final int repeatMode,
             final JSONObject customData)
             throws TransientNetworkDisconnectionException, NoConnectionException {
         LOGD(TAG, "queueLoad");
@@ -1090,6 +1091,14 @@ public class VideoCastManager extends BaseCastManager
 
                     @Override
                     public void onResult(MediaChannelResult result) {
+                        if (startPosition > 0) {
+                            try {
+                                play(startPosition);
+                            } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+                                Log.e(TAG, "Error playing at position after loading queue: " + e);
+                            }
+                        }
+
                         for (VideoCastConsumer consumer : mVideoConsumers) {
                             consumer.onMediaQueueOperationResult(QUEUE_OPERATION_LOAD,
                                                                  result.getStatus().getStatusCode());
@@ -1403,7 +1412,7 @@ public class VideoCastManager extends BaseCastManager
      * @throws TransientNetworkDisconnectionException
      * @throws NoConnectionException
      */
-    public void queueAppendItem(MediaQueueItem item, final JSONObject customData)
+    public void queueAppendItem(final MediaQueueItem item, final boolean autoPlay, final JSONObject customData)
             throws TransientNetworkDisconnectionException, NoConnectionException {
         mRemoteMediaPlayer
                 .queueAppendItem(mApiClient, item, customData)
@@ -1412,6 +1421,15 @@ public class VideoCastManager extends BaseCastManager
 
                             @Override
                             public void onResult(MediaChannelResult result) {
+                                if (autoPlay && result.getStatus().isSuccess()) {
+                                    try {
+                                        queueJumpToItem(item.getItemId(), null);
+                                    } catch (TransientNetworkDisconnectionException |
+                                            NoConnectionException e) {
+                                        LOGE(TAG, "queuePrev() Failed to skip to previous", e);
+                                    }
+                                }
+
                                 for (VideoCastConsumer consumer : mVideoConsumers) {
                                     consumer.onMediaQueueOperationResult(QUEUE_OPERATION_APPEND,
                                                                          result.getStatus().getStatusCode());
@@ -1491,7 +1509,7 @@ public class VideoCastManager extends BaseCastManager
      * @throws NoConnectionException
      * @throws IllegalArgumentException
      */
-    public void queueInsertBeforeCurrentAndPlay(MediaQueueItem item, int insertBeforeItemId,
+    public void queueInsertBeforeItemAndPlay(MediaQueueItem item, int insertBeforeItemId,
             final JSONObject customData)
             throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
