@@ -121,4 +121,9 @@ public class VideoCastConsumerImpl extends BaseCastConsumerImpl
 
     }
 
+    @Override
+    public void onQueueLoadStarted() {
+
+    }
+
 }

@@ -164,4 +164,6 @@ public interface VideoCastConsumer extends BaseCastConsumer {
 
     void onMediaLoadStarted(MediaInfo mediaInfo);
 
+    void onQueueLoadStarted();
+
 }
