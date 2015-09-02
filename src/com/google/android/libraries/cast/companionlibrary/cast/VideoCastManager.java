@@ -1245,7 +1245,8 @@ public class VideoCastManager extends BaseCastManager
         LOGD(TAG, "queueRemoveItems");
         checkConnectivity();
         if (itemIdsToRemove == null || itemIdsToRemove.length == 0) {
-            throw new IllegalArgumentException("itemIds cannot be empty or null");
+            //throw new IllegalArgumentException("itemIds cannot be empty or null");
+            return;
         }
         if (mRemoteMediaPlayer == null) {
             LOGE(TAG, "Trying to remove items from queue with no active media session");
