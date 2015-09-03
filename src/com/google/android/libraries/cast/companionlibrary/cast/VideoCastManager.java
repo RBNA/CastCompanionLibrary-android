@@ -1107,50 +1107,50 @@ public class VideoCastManager extends BaseCastManager
                 });
     }
 
-    /**
-     * Inserts a list of new media items into the queue.
-     *
-     * @param itemsToInsert List of items to insert into the queue, in the order that they should be
-     *                      played. The itemId field of the items should be unassigned or the
-     *                      request will fail with an INVALID_PARAMS error. Must not be {@code null}
-     *                      or empty.
-     * @param insertBeforeItemId ID of the item that will be located immediately after the inserted
-     *                           list. If the value is {@link MediaQueueItem#INVALID_ITEM_ID} or
-     *                           invalid, the inserted list will be appended to the end of the
-     *                           queue.
-     * @param customData Custom application-specific data to pass along with the request. May be
-     *                   {@code null}.
-     * @throws TransientNetworkDisconnectionException
-     * @throws NoConnectionException
-     * @throws IllegalArgumentException
-     */
-    public void queueInsertItems(final MediaQueueItem[] itemsToInsert, final int insertBeforeItemId,
-            final JSONObject customData)
-            throws TransientNetworkDisconnectionException, NoConnectionException {
-        LOGD(TAG, "queueInsertItems");
-        checkConnectivity();
-        if (itemsToInsert == null || itemsToInsert.length == 0) {
-            throw new IllegalArgumentException("items cannot be empty or null");
-        }
-        if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to insert into queue with no active media session");
-            throw new NoConnectionException();
-        }
-        mRemoteMediaPlayer
-                .queueInsertItems(mApiClient, itemsToInsert, insertBeforeItemId, customData)
-                .setResultCallback(
-                        new ResultCallback<MediaChannelResult>() {
-
-                            @Override
-                            public void onResult(MediaChannelResult result) {
-                                for (VideoCastConsumer consumer : mVideoConsumers) {
-                                    consumer.onMediaQueueOperationResult(
-                                            QUEUE_OPERATION_INSERT_ITEMS,
-                                            result.getStatus().getStatusCode());
-                                }
-                            }
-                        });
-    }
+//    /**
+//     * Inserts a list of new media items into the queue.
+//     *
+//     * @param itemsToInsert List of items to insert into the queue, in the order that they should be
+//     *                      played. The itemId field of the items should be unassigned or the
+//     *                      request will fail with an INVALID_PARAMS error. Must not be {@code null}
+//     *                      or empty.
+//     * @param insertBeforeItemId ID of the item that will be located immediately after the inserted
+//     *                           list. If the value is {@link MediaQueueItem#INVALID_ITEM_ID} or
+//     *                           invalid, the inserted list will be appended to the end of the
+//     *                           queue.
+//     * @param customData Custom application-specific data to pass along with the request. May be
+//     *                   {@code null}.
+//     * @throws TransientNetworkDisconnectionException
+//     * @throws NoConnectionException
+//     * @throws IllegalArgumentException
+//     */
+//    public void queueInsertItems(final MediaQueueItem[] itemsToInsert, final int insertBeforeItemId,
+//            final JSONObject customData)
+//            throws TransientNetworkDisconnectionException, NoConnectionException {
+//        LOGD(TAG, "queueInsertItems");
+//        checkConnectivity();
+//        if (itemsToInsert == null || itemsToInsert.length == 0) {
+//            throw new IllegalArgumentException("items cannot be empty or null");
+//        }
+//        if (mRemoteMediaPlayer == null) {
+//            LOGE(TAG, "Trying to insert into queue with no active media session");
+//            throw new NoConnectionException();
+//        }
+//        mRemoteMediaPlayer
+//                .queueInsertItems(mApiClient, itemsToInsert, insertBeforeItemId, customData)
+//                .setResultCallback(
+//                        new ResultCallback<MediaChannelResult>() {
+//
+//                            @Override
+//                            public void onResult(MediaChannelResult result) {
+//                                for (VideoCastConsumer consumer : mVideoConsumers) {
+//                                    consumer.onMediaQueueOperationResult(
+//                                            QUEUE_OPERATION_INSERT_ITEMS,
+//                                            result.getStatus().getStatusCode());
+//                                }
+//                            }
+//                        });
+//    }
 
     /**
      * Updates properties of a subset of the existing items in the media queue.
@@ -1510,8 +1510,7 @@ public class VideoCastManager extends BaseCastManager
      * @throws NoConnectionException
      * @throws IllegalArgumentException
      */
-    public void queueInsertBeforeItemAndPlay(MediaQueueItem item, int insertBeforeItemId,
-            final JSONObject customData)
+    public void queueInsertBeforeItem(MediaQueueItem item, int insertBeforeItemId, final boolean startPlaying, final JSONObject customData)
             throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         if (mRemoteMediaPlayer == null) {
@@ -1528,13 +1527,16 @@ public class VideoCastManager extends BaseCastManager
 
                     @Override
                     public void onResult(MediaChannelResult result) {
-                        if (result.getStatus().isSuccess()) {
 
-                            try {
-                                queuePrev(customData);
-                            } catch (TransientNetworkDisconnectionException |
-                                    NoConnectionException e) {
-                                LOGE(TAG, "queuePrev() Failed to skip to previous", e);
+                        if (startPlaying) {
+                            if (result.getStatus().isSuccess()) {
+
+                                try {
+                                    queuePrev(customData);
+                                } catch (TransientNetworkDisconnectionException |
+                                        NoConnectionException e) {
+                                    LOGE(TAG, "queuePrev() Failed to skip to previous", e);
+                                }
                             }
                         }
                         for (VideoCastConsumer consumer : mVideoConsumers) {
