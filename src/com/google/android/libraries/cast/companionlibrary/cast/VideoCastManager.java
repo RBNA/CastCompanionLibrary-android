@@ -1091,7 +1091,7 @@ public class VideoCastManager extends BaseCastManager
 
                     @Override
                     public void onResult(MediaChannelResult result) {
-                        if (startPosition > 0) {
+                        if (startPosition > 0 && result.getStatus().isSuccess()) {
                             try {
                                 play(startPosition);
                             } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
