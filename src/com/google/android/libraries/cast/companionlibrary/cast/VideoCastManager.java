@@ -1422,7 +1422,7 @@ public class VideoCastManager extends BaseCastManager
 
                             @Override
                             public void onResult(MediaChannelResult result) {
-                                if (autoPlay && result.getStatus().isSuccess()) {
+                                if (item.getItemId() != MediaQueueItem.INVALID_ITEM_ID && autoPlay && result.getStatus().isSuccess()) {
                                     try {
                                         queueJumpToItem(item.getItemId(), null);
                                     } catch (TransientNetworkDisconnectionException |
@@ -1510,7 +1510,7 @@ public class VideoCastManager extends BaseCastManager
      * @throws NoConnectionException
      * @throws IllegalArgumentException
      */
-    public void queueInsertBeforeItem(MediaQueueItem item, int insertBeforeItemId, final boolean startPlaying, final JSONObject customData)
+    public void queueInsertBeforeItem(final MediaQueueItem item, int insertBeforeItemId, final boolean startPlaying, final JSONObject customData)
             throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         if (mRemoteMediaPlayer == null) {
@@ -1528,15 +1528,12 @@ public class VideoCastManager extends BaseCastManager
                     @Override
                     public void onResult(MediaChannelResult result) {
 
-                        if (startPlaying) {
-                            if (result.getStatus().isSuccess()) {
-
-                                try {
-                                    queuePrev(customData);
-                                } catch (TransientNetworkDisconnectionException |
-                                        NoConnectionException e) {
-                                    LOGE(TAG, "queuePrev() Failed to skip to previous", e);
-                                }
+                        if (startPlaying && result.getStatus().isSuccess()) {
+                            try {
+                                queueNext(customData);
+                            } catch (TransientNetworkDisconnectionException |
+                                    NoConnectionException e) {
+                                LOGE(TAG, "queuePrev() Failed to skip to previous", e);
                             }
                         }
                         for (VideoCastConsumer consumer : mVideoConsumers) {
