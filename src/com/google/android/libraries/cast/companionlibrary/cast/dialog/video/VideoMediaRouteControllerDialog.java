@@ -169,7 +169,7 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
     //public void setIcon(Uri uri) {
     public void setIcon(MediaInfo mediaInfo) {
         VideoCastManager.BitmapFetcher bitmapFetcher = mCastManager.getBitmapFetcher();
-        if (mCastManager != null) {
+        if (bitmapFetcher != null) {
             // RedBull delegated method of looking up bitmap(Picasso, Transforms, etc.)
             bitmapFetcher.fetchBitmap(mediaInfo, VideoCastManager.BitmapFetchType.notification, new VideoCastManager.BitmapFetcherCallback() {
                 @Override
