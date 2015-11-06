@@ -160,6 +160,7 @@ public class VideoCastManager extends BaseCastManager
     private UpdateProgressTask mProgressTask;
     private int mNextPreviousVisibilityPolicy
             = VideoCastController.NEXT_PREV_VISIBILITY_POLICY_DISABLED;
+    private LockScreenBitmapSetter lockScreenBitmapSetter;
 
     /**
      * Volume can be controlled at two different layers, one is at the "stream" level and one at
@@ -2269,50 +2270,57 @@ public class VideoCastManager extends BaseCastManager
         if (video == null || mMediaSessionCompat == null) {
             return;
         }
-        Uri imgUrl = null;
-        Bitmap bm = null;
-        List<WebImage> images = video.getMetadata().getImages();
-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN_MR2) {
-            if (images.size() > 1) {
-                imgUrl = images.get(1).getUrl();
-            } else if (images.size() == 1) {
+
+        // Allow delegation of Bitmap setting.  Doing this to keep Picasso/ImageTemplate logic
+        // out of the VideoCastManager
+        if (lockScreenBitmapSetter != null) {
+            lockScreenBitmapSetter.setLockScreenBitmap(video, mMediaSessionCompat);
+        } else {
+            Uri imgUrl = null;
+            Bitmap bm = null;
+            List<WebImage> images = video.getMetadata().getImages();
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                if (images.size() > 1) {
+                    imgUrl = images.get(1).getUrl();
+                } else if (images.size() == 1) {
+                    imgUrl = images.get(0).getUrl();
+                } else if (mContext != null) {
+                    // we don't have a url for image so get a placeholder image from resources
+                    bm = BitmapFactory.decodeResource(mContext.getResources(),
+                                                      R.drawable.album_art_placeholder_large);
+                }
+            } else if (!images.isEmpty()) {
                 imgUrl = images.get(0).getUrl();
-            } else if (mContext != null) {
+            } else {
                 // we don't have a url for image so get a placeholder image from resources
                 bm = BitmapFactory.decodeResource(mContext.getResources(),
-                        R.drawable.album_art_placeholder_large);
+                                                  R.drawable.album_art_placeholder);
             }
-        } else if (!images.isEmpty()) {
-            imgUrl = images.get(0).getUrl();
-        } else {
-            // we don't have a url for image so get a placeholder image from resources
-            bm = BitmapFactory.decodeResource(mContext.getResources(),
-                    R.drawable.album_art_placeholder);
-        }
-        if (bm != null) {
-            MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController().getMetadata();
-            MediaMetadataCompat.Builder newBuilder = currentMetadata == null
-                    ? new MediaMetadataCompat.Builder()
-                    : new MediaMetadataCompat.Builder(currentMetadata);
-            mMediaSessionCompat.setMetadata(newBuilder
-                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bm)
-                    .build());
-        } else {
-            new FetchBitmapTask() {
-                @Override
-                protected void onPostExecute(Bitmap bitmap) {
-                    if (mMediaSessionCompat != null) {
-                        MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController()
-                                                                                 .getMetadata();
-                        MediaMetadataCompat.Builder newBuilder = currentMetadata == null
-                                                                 ? new MediaMetadataCompat.Builder()
-                                                                 : new MediaMetadataCompat.Builder(currentMetadata);
-                        mMediaSessionCompat.setMetadata(newBuilder
-                                                                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
-                                                                .build());
+            if (bm != null) {
+                MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController().getMetadata();
+                MediaMetadataCompat.Builder newBuilder = currentMetadata == null
+                                                         ? new MediaMetadataCompat.Builder()
+                                                         : new MediaMetadataCompat.Builder(currentMetadata);
+                mMediaSessionCompat.setMetadata(newBuilder
+                                                        .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bm)
+                                                        .build());
+            } else {
+                new FetchBitmapTask() {
+                    @Override
+                    protected void onPostExecute(Bitmap bitmap) {
+                        if (mMediaSessionCompat != null) {
+                            MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController()
+                                                                                     .getMetadata();
+                            MediaMetadataCompat.Builder newBuilder = currentMetadata == null
+                                                                     ? new MediaMetadataCompat.Builder()
+                                                                     : new MediaMetadataCompat.Builder(currentMetadata);
+                            mMediaSessionCompat.setMetadata(newBuilder
+                                                                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
+                                                                    .build());
+                        }
                     }
-                }
-            }.execute(imgUrl);
+                }.execute(imgUrl);
+            }
         }
     }
     /*
@@ -2393,6 +2401,10 @@ public class VideoCastManager extends BaseCastManager
                 mMediaSessionCompat = null;
             }
         }
+    }
+
+    public MediaSessionCompat getMediaSession() {
+        return mMediaSessionCompat;
     }
 
     /**
@@ -2936,5 +2948,13 @@ public class VideoCastManager extends BaseCastManager
 
     public void setMiniControllerUpdater(MiniControllerUpdater updater) {
         miniControllerUpdater = updater;
+    }
+
+    public interface LockScreenBitmapSetter {
+        void setLockScreenBitmap(MediaInfo mediaInfo, MediaSessionCompat mediaSession);
+    }
+
+    public void setLockScreenBitmapSetter(LockScreenBitmapSetter lockScreenBitmapSetter) {
+        this.lockScreenBitmapSetter = lockScreenBitmapSetter;
     }
 }
