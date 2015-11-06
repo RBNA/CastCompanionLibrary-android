@@ -64,7 +64,6 @@ public class VideoCastNotificationService extends Service {
     private static final int NOTIFICATION_ID = 1;
     public static final String NOTIFICATION_VISIBILITY = "visible";
 
-    private Bitmap mVideoArtBitmap;
     private boolean mIsPlaying;
     private Class<?> mTargetActivity;
     private int mOldStatus = -1;
@@ -162,40 +161,61 @@ public class VideoCastNotificationService extends Service {
         if (info == null) {
             return;
         }
-        if (mBitmapDecoderTask != null) {
-            mBitmapDecoderTask.cancel(false);
-        }
-        Uri imgUri = null;
-        try {
-            if (!info.getMetadata().hasImages()) {
-                build(info, null, mIsPlaying);
-                return;
-            } else {
-                imgUri = info.getMetadata().getImages().get(0).getUrl();
+
+        VideoCastManager.BitmapFetcher bitmapFetcher = mCastManager.getBitmapFetcher();
+        if (bitmapFetcher != null) {
+            // Red Bull, delegated method of bitmap fetching
+            bitmapFetcher.fetchBitmap(info, VideoCastManager.BitmapFetchType.notification, new VideoCastManager.BitmapFetcherCallback() {
+                @Override
+                public void onBitmapFetched(Bitmap bitmap) {
+                    try {
+                        build(info, bitmap, mIsPlaying);
+                    } catch (CastException | NoConnectionException | TransientNetworkDisconnectionException e) {
+                        LOGE(TAG, "Failed to set notification for " + info.toString(), e);
+                    }
+                    if (mVisible && (mNotification != null)) {
+                        startForeground(NOTIFICATION_ID, mNotification);
+                    }
+                }
+            });
+        } else {
+            if (mBitmapDecoderTask != null) {
+                mBitmapDecoderTask.cancel(false);
             }
-        } catch (CastException e) {
-            LOGE(TAG, "Failed to build notification", e);
-        }
-        mBitmapDecoderTask = new FetchBitmapTask() {
-            @Override
-            protected void onPostExecute(Bitmap bitmap) {
-                try {
-                    mVideoArtBitmap = Utils.scaleAndCenterCropBitmap(bitmap, mDimensionInPixels,
-                            mDimensionInPixels);
-                    build(info, mVideoArtBitmap, mIsPlaying);
-                } catch (CastException | NoConnectionException
-                        | TransientNetworkDisconnectionException e) {
-                    LOGE(TAG, "Failed to set notification for " + info.toString(), e);
+            Uri imgUri = null;
+            try {
+                if (!info.getMetadata().hasImages()) {
+                    build(info, null, mIsPlaying);
+                    return;
+                } else {
+                    imgUri = info.getMetadata().getImages().get(0).getUrl();
                 }
-                if (mVisible && (mNotification != null)) {
-                    startForeground(NOTIFICATION_ID, mNotification);
-                }
-                if (this == mBitmapDecoderTask) {
-                    mBitmapDecoderTask = null;
-                }
+            } catch (CastException e) {
+                LOGE(TAG, "Failed to build notification", e);
             }
-        };
-        mBitmapDecoderTask.execute(imgUri);
+
+
+            mBitmapDecoderTask = new FetchBitmapTask() {
+                @Override
+                protected void onPostExecute(Bitmap bitmap) {
+                    try {
+                        Bitmap videoArtBitmap = Utils.scaleAndCenterCropBitmap(bitmap, mDimensionInPixels,
+                                                                               mDimensionInPixels);
+                        build(info, videoArtBitmap, mIsPlaying);
+                    } catch (CastException | NoConnectionException
+                            | TransientNetworkDisconnectionException e) {
+                        LOGE(TAG, "Failed to set notification for " + info.toString(), e);
+                    }
+                    if (mVisible && (mNotification != null)) {
+                        startForeground(NOTIFICATION_ID, mNotification);
+                    }
+                    if (this == mBitmapDecoderTask) {
+                        mBitmapDecoderTask = null;
+                    }
+                }
+            };
+            mBitmapDecoderTask.execute(imgUri);
+        }
     }
 
     /**

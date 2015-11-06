@@ -16,10 +16,29 @@
 
 package com.google.android.libraries.cast.companionlibrary.cast;
 
-import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
-import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
-
+import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.res.Resources.NotFoundException;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.media.AudioManager;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.preference.PreferenceScreen;
+import android.support.v4.media.MediaMetadataCompat;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
+import android.support.v7.app.MediaRouteDialogFactory;
+import android.support.v7.media.MediaRouter.RouteInfo;
+import android.text.TextUtils;
 import android.util.Log;
+import android.view.KeyEvent;
+import android.view.View;
+import android.view.accessibility.CaptioningManager;
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
 import com.google.android.gms.cast.Cast.CastOptions.Builder;
@@ -60,30 +79,6 @@ import com.google.android.libraries.cast.companionlibrary.utils.Utils;
 import com.google.android.libraries.cast.companionlibrary.widgets.IMiniController;
 import com.google.android.libraries.cast.companionlibrary.widgets.MiniController;
 import com.google.android.libraries.cast.companionlibrary.widgets.MiniController.OnMiniControllerChangedListener;
-
-import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.res.Resources.NotFoundException;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.media.AudioManager;
-import android.net.Uri;
-import android.os.Build;
-import android.os.Bundle;
-import android.preference.PreferenceScreen;
-import android.support.v4.media.MediaMetadataCompat;
-import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.PlaybackStateCompat;
-import android.support.v7.app.MediaRouteDialogFactory;
-import android.support.v7.media.MediaRouter.RouteInfo;
-import android.text.TextUtils;
-import android.view.KeyEvent;
-import android.view.View;
-import android.view.accessibility.CaptioningManager;
-
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -97,6 +92,9 @@ import java.util.TimerTask;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
+
+import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
+import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
 /**
  * An abstract subclass of {@link BaseCastManager} that is suitable for casting video contents (it
@@ -160,7 +158,7 @@ public class VideoCastManager extends BaseCastManager
     private UpdateProgressTask mProgressTask;
     private int mNextPreviousVisibilityPolicy
             = VideoCastController.NEXT_PREV_VISIBILITY_POLICY_DISABLED;
-    private LockScreenBitmapSetter lockScreenBitmapSetter;
+    private BitmapFetcher bitmapFetcher;
 
     /**
      * Volume can be controlled at two different layers, one is at the "stream" level and one at
@@ -2165,7 +2163,7 @@ public class VideoCastManager extends BaseCastManager
             boolean shuffle) {
         LOGD(TAG, "onQueueUpdated() reached");
         LOGD(TAG, String.format("Queue Items size: %d, Item: %s, Repeat Mode: %d, Shuffle: %s",
-                queueItems == null ? 0 : queueItems.size(), item, repeatMode, shuffle));
+                                queueItems == null ? 0 : queueItems.size(), item, repeatMode, shuffle));
         if (queueItems != null) {
             mMediaQueue = new MediaQueue(new CopyOnWriteArrayList<>(queueItems), item, shuffle,
                     repeatMode);
@@ -2273,8 +2271,19 @@ public class VideoCastManager extends BaseCastManager
 
         // Allow delegation of Bitmap setting.  Doing this to keep Picasso/ImageTemplate logic
         // out of the VideoCastManager
-        if (lockScreenBitmapSetter != null) {
-            lockScreenBitmapSetter.setLockScreenBitmap(video, mMediaSessionCompat);
+        if (bitmapFetcher != null) {
+            bitmapFetcher.fetchBitmap(video, BitmapFetchType.lockscreen, new BitmapFetcherCallback() {
+                @Override
+                public void onBitmapFetched(Bitmap bitmap) {
+                    MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController().getMetadata();
+                    MediaMetadataCompat.Builder newBuilder = currentMetadata == null
+                                                             ? new MediaMetadataCompat.Builder()
+                                                             : new MediaMetadataCompat.Builder(currentMetadata);
+                    mMediaSessionCompat.setMetadata(newBuilder
+                                                            .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
+                                                            .build());
+                }
+            });
         } else {
             Uri imgUrl = null;
             Bitmap bm = null;
@@ -2667,8 +2676,8 @@ public class VideoCastManager extends BaseCastManager
                                 + mediaChannelResult.getStatus().isSuccess());
                         if (!mediaChannelResult.getStatus().isSuccess()) {
                             LOGD(TAG, "Failed since: " + mediaChannelResult.getStatus()
-                                    + " and status code:" + mediaChannelResult.getStatus()
-                                    .getStatusCode());
+                                      + " and status code:" + mediaChannelResult.getStatus()
+                                                                                .getStatusCode());
                         }
                     }
                 });
@@ -2950,11 +2959,24 @@ public class VideoCastManager extends BaseCastManager
         miniControllerUpdater = updater;
     }
 
-    public interface LockScreenBitmapSetter {
-        void setLockScreenBitmap(MediaInfo mediaInfo, MediaSessionCompat mediaSession);
+    public enum BitmapFetchType {
+        notification,
+        lockscreen
     }
 
-    public void setLockScreenBitmapSetter(LockScreenBitmapSetter lockScreenBitmapSetter) {
-        this.lockScreenBitmapSetter = lockScreenBitmapSetter;
+    public interface BitmapFetcher {
+        void fetchBitmap(MediaInfo mediaInfo, BitmapFetchType type, BitmapFetcherCallback callback);
+    }
+
+    public interface BitmapFetcherCallback {
+        void onBitmapFetched(Bitmap bitmap);
+    }
+
+    public void setBitmapFetcher(BitmapFetcher bitmapFetcher) {
+        this.bitmapFetcher = bitmapFetcher;
+    }
+
+    public BitmapFetcher getBitmapFetcher() {
+        return bitmapFetcher;
     }
 }

@@ -162,35 +162,50 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
         MediaMetadata mm = info.getMetadata();
         mTitle.setText(mm.getString(MediaMetadata.KEY_TITLE));
         mSubTitle.setText(mm.getString(MediaMetadata.KEY_SUBTITLE));
-        setIcon(mm.hasImages() ? mm.getImages().get(0).getUrl() : null);
+        //setIcon(mm.hasImages() ? mm.getImages().get(0).getUrl() : null);
+        setIcon(info);
     }
 
-    public void setIcon(Uri uri) {
-        if (mIconUri != null && mIconUri.equals(uri)) {
-            return;
-        }
-        mIconUri = uri;
-        if (uri == null) {
-            Bitmap bm = BitmapFactory.decodeResource(
-                    mContext.getResources(), R.drawable.album_art_placeholder);
-            mIcon.setImageBitmap(bm);
-            return;
-        }
-        if (mFetchBitmap != null) {
-            mFetchBitmap.cancel(true);
-        }
-
-        mFetchBitmap = new FetchBitmapTask() {
-            @Override
-            protected void onPostExecute(Bitmap bitmap) {
-                mIcon.setImageBitmap(bitmap);
-                if (this == mFetchBitmap) {
-                    mFetchBitmap = null;
+    //public void setIcon(Uri uri) {
+    public void setIcon(MediaInfo mediaInfo) {
+        VideoCastManager.BitmapFetcher bitmapFetcher = mCastManager.getBitmapFetcher();
+        if (mCastManager != null) {
+            // RedBull delegated method of looking up bitmap(Picasso, Transforms, etc.)
+            bitmapFetcher.fetchBitmap(mediaInfo, VideoCastManager.BitmapFetchType.notification, new VideoCastManager.BitmapFetcherCallback() {
+                @Override
+                public void onBitmapFetched(Bitmap bitmap) {
+                    mIcon.setImageBitmap(bitmap);
                 }
+            });
+        } else {
+            MediaMetadata mm = mediaInfo.getMetadata();
+            Uri uri = mm.hasImages() ? mm.getImages().get(0).getUrl() : null;
+            if (mIconUri != null && mIconUri.equals(uri)) {
+                return;
             }
-        };
+            mIconUri = uri;
+            if (uri == null) {
+                Bitmap bm = BitmapFactory.decodeResource(
+                        mContext.getResources(), R.drawable.album_art_placeholder);
+                mIcon.setImageBitmap(bm);
+                return;
+            }
+            if (mFetchBitmap != null) {
+                mFetchBitmap.cancel(true);
+            }
 
-        mFetchBitmap.execute(mIconUri);
+            mFetchBitmap = new FetchBitmapTask() {
+                @Override
+                protected void onPostExecute(Bitmap bitmap) {
+                    mIcon.setImageBitmap(bitmap);
+                    if (this == mFetchBitmap) {
+                        mFetchBitmap = null;
+                    }
+                }
+            };
+
+            mFetchBitmap.execute(mIconUri);
+        }
     }
 
     private void updatePlayPauseState(int state) {
