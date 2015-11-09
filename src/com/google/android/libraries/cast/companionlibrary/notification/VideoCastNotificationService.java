@@ -291,6 +291,10 @@ public class VideoCastNotificationService extends Service {
     private void build(MediaInfo info, Bitmap bitmap, boolean isPlaying)
             throws CastException, TransientNetworkDisconnectionException, NoConnectionException {
 
+        if (mCastManager == null) {
+            return;
+        }
+
         // Playback PendingIntent
         Intent playbackIntent = new Intent(ACTION_TOGGLE_PLAYBACK);
         playbackIntent.setPackage(getPackageName());
