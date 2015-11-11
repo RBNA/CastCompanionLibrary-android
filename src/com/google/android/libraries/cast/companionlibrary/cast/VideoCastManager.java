@@ -2275,13 +2275,15 @@ public class VideoCastManager extends BaseCastManager
             bitmapFetcher.fetchBitmap(video, BitmapFetchType.lockscreen, new BitmapFetcherCallback() {
                 @Override
                 public void onBitmapFetched(Bitmap bitmap) {
-                    MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController().getMetadata();
-                    MediaMetadataCompat.Builder newBuilder = currentMetadata == null
-                                                             ? new MediaMetadataCompat.Builder()
-                                                             : new MediaMetadataCompat.Builder(currentMetadata);
-                    mMediaSessionCompat.setMetadata(newBuilder
-                                                            .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
-                                                            .build());
+                    if (mMediaSessionCompat != null) {
+                        MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController().getMetadata();
+                        MediaMetadataCompat.Builder newBuilder = currentMetadata == null
+                                                                 ? new MediaMetadataCompat.Builder()
+                                                                 : new MediaMetadataCompat.Builder(currentMetadata);
+                        mMediaSessionCompat.setMetadata(newBuilder
+                                                                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
+                                                                .build());
+                    }
                 }
             });
         } else {
