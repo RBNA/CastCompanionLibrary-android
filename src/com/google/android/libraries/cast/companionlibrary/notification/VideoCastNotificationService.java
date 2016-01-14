@@ -19,6 +19,8 @@ package com.google.android.libraries.cast.companionlibrary.notification;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
+import android.util.Log;
+import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaMetadata;
 import com.google.android.gms.cast.MediaStatus;
@@ -90,6 +92,17 @@ public class VideoCastNotificationService extends Service {
                 LOGD(TAG, "onApplicationDisconnected() was reached, stopping the notification"
                         + " service");
                 stopSelf();
+            }
+
+            @Override
+            public void onApplicationConnected(ApplicationMetadata appMetadata, String sessionId, boolean wasLaunched) {
+                // Make sure to update notification when we connect if needed
+                VideoCastNotificationService.this.onRemoteMediaPlayerStatusUpdated(mCastManager.getPlaybackStatus());
+            }
+
+            @Override
+            public void onConnected() {
+                VideoCastNotificationService.this.onRemoteMediaPlayerStatusUpdated(mCastManager.getPlaybackStatus());
             }
 
             @Override
@@ -169,6 +182,7 @@ public class VideoCastNotificationService extends Service {
                 @Override
                 public void onBitmapFetched(Bitmap bitmap) {
                     try {
+                        Log.d(TAG, "Notification bitmap fetched...");
                         build(info, bitmap, mIsPlaying);
                     } catch (CastException | NoConnectionException | TransientNetworkDisconnectionException e) {
                         LOGE(TAG, "Failed to set notification for " + info.toString(), e);
@@ -294,6 +308,8 @@ public class VideoCastNotificationService extends Service {
         if (mCastManager == null) {
             return;
         }
+
+        Log.d(TAG, "Building notification...");
 
         // Playback PendingIntent
         Intent playbackIntent = new Intent(ACTION_TOGGLE_PLAYBACK);

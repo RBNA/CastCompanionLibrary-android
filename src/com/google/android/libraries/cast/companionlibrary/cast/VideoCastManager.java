@@ -2067,6 +2067,8 @@ public class VideoCastManager extends BaseCastManager
                 LOGD(TAG, "[queue] Queue Item is: " + item.toJson());
             }
         }
+
+        int oldStatus = mState;
         mState = mMediaStatus.getPlayerState();
         mIdleReason = mMediaStatus.getIdleReason();
 
@@ -2131,6 +2133,16 @@ public class VideoCastManager extends BaseCastManager
             for (VideoCastConsumer consumer : mVideoConsumers) {
                 consumer.onRemoteMediaPlayerStatusUpdated();
                 consumer.onVolumeChanged(volume, isMute);
+            }
+
+            // Can't depend on onRemoteMediaPlayerMetadataUpdated, which is where the CCL
+            // was updating Lockscreen image.  I'll do it myself!
+            if (oldStatus != mState) {
+                try {
+                    updateLockScreenImage(getRemoteMediaInformation());
+                } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+                    LOGE(TAG, "Failed to update lock screen metadata due to a network issue", e);
+                }
             }
         } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
             LOGE(TAG, "Failed to get volume state due to network issues", e);
@@ -2276,6 +2288,7 @@ public class VideoCastManager extends BaseCastManager
                 @Override
                 public void onBitmapFetched(Bitmap bitmap) {
                     if (mMediaSessionCompat != null) {
+                        Log.d(TAG, "Fetched Lockscreen Bitmap, updating MediaSessionCompat");
                         MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController().getMetadata();
                         MediaMetadataCompat.Builder newBuilder = currentMetadata == null
                                                                  ? new MediaMetadataCompat.Builder()
