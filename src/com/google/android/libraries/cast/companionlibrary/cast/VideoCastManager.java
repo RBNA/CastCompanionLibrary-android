@@ -2137,7 +2137,7 @@ public class VideoCastManager extends BaseCastManager
 
             // Can't depend on onRemoteMediaPlayerMetadataUpdated, which is where the CCL
             // was updating Lockscreen image.  I'll do it myself!
-            if (oldStatus != mState) {
+            if (oldStatus != mState && mState == MediaStatus.PLAYER_STATE_PLAYING) {
                 try {
                     updateLockScreenImage(getRemoteMediaInformation());
                 } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
@@ -2281,6 +2281,8 @@ public class VideoCastManager extends BaseCastManager
             return;
         }
 
+        Log.v(TAG, "Updating Lockscreen Bitmap(should have notification), updating MediaSessionCompat");
+
         // Allow delegation of Bitmap setting.  Doing this to keep Picasso/ImageTemplate logic
         // out of the VideoCastManager
         if (bitmapFetcher != null) {
@@ -2288,7 +2290,7 @@ public class VideoCastManager extends BaseCastManager
                 @Override
                 public void onBitmapFetched(Bitmap bitmap) {
                     if (mMediaSessionCompat != null) {
-                        Log.d(TAG, "Fetched Lockscreen Bitmap, updating MediaSessionCompat");
+                        Log.v(TAG, "Lockscreen bitmap fetched, updating");
                         MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController().getMetadata();
                         MediaMetadataCompat.Builder newBuilder = currentMetadata == null
                                                                  ? new MediaMetadataCompat.Builder()
