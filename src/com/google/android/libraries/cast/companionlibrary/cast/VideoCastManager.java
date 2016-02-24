@@ -336,11 +336,12 @@ public class VideoCastManager extends BaseCastManager
         if (mState == MediaStatus.PLAYER_STATE_PLAYING) {
             pause();
         } else {
-            boolean isLive = isRemoteStreamLive();
-            if ((mState == MediaStatus.PLAYER_STATE_PAUSED && !isLive)
-                    || (mState == MediaStatus.PLAYER_STATE_IDLE && isLive)) {
-                play();
-            }
+            play();
+//            boolean isLive = isRemoteStreamLive();
+//            if ((mState == MediaStatus.PLAYER_STATE_PAUSED && !isLive)
+//                    || (mState == MediaStatus.PLAYER_STATE_IDLE && isLive)) {
+//                play();
+//            }
         }
     }
 
