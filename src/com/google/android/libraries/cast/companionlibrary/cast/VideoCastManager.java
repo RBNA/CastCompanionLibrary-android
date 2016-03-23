@@ -159,6 +159,7 @@ public class VideoCastManager extends BaseCastManager
     private int mNextPreviousVisibilityPolicy
             = VideoCastController.NEXT_PREV_VISIBILITY_POLICY_DISABLED;
     private BitmapFetcher bitmapFetcher;
+    private MediaRouteDialogFactory mediaRouteDialogFactory;
 
     /**
      * Volume can be controlled at two different layers, one is at the "stream" level and one at
@@ -1398,7 +1399,8 @@ public class VideoCastManager extends BaseCastManager
                             public void onResult(MediaChannelResult result) {
                                 for (VideoCastConsumer consumer : mVideoConsumers) {
                                     consumer.onMediaQueueOperationResult(QUEUE_OPERATION_MOVE,
-                                            result.getStatus().getStatusCode());;
+                                                                         result.getStatus().getStatusCode());
+                                    ;
                                 }
                             }
                         });
@@ -1491,7 +1493,7 @@ public class VideoCastManager extends BaseCastManager
                     public void onResult(MediaChannelResult result) {
                         for (VideoCastConsumer consumer : mVideoConsumers) {
                             consumer.onMediaQueueOperationResult(QUEUE_OPERATION_PREV,
-                                    result.getStatus().getStatusCode());
+                                                                 result.getStatus().getStatusCode());
                         }
                     }
                 });
@@ -1777,8 +1779,8 @@ public class VideoCastManager extends BaseCastManager
 
                 };
         mRemoteMediaPlayer.seek(mApiClient,
-                position,
-                RemoteMediaPlayer.RESUME_STATE_PLAY).setResultCallback(resultCallback);
+                                position,
+                                RemoteMediaPlayer.RESUME_STATE_PLAY).setResultCallback(resultCallback);
     }
 
     /**
@@ -1851,11 +1853,11 @@ public class VideoCastManager extends BaseCastManager
                         @Override
                         public void onQueueStatusUpdated() {
                             LOGD(TAG,
-                                    "RemoteMediaPlayer::onQueueStatusUpdated() is "
-                                            + "reached");
+                                 "RemoteMediaPlayer::onQueueStatusUpdated() is "
+                                 + "reached");
                             mMediaStatus = mRemoteMediaPlayer.getMediaStatus();
                             if (mMediaStatus != null
-                                    && mMediaStatus.getQueueItems() != null) {
+                                && mMediaStatus.getQueueItems() != null) {
                                 List<MediaQueueItem> queueItems = mMediaStatus
                                         .getQueueItems();
                                 int itemId = mMediaStatus.getCurrentItemId();
@@ -1866,8 +1868,8 @@ public class VideoCastManager extends BaseCastManager
                                 onQueueUpdated(queueItems, item, repeatMode, shuffle);
                             } else {
                                 onQueueUpdated(null, null,
-                                        MediaStatus.REPEAT_MODE_REPEAT_OFF,
-                                        false);
+                                               MediaStatus.REPEAT_MODE_REPEAT_OFF,
+                                               false);
                             }
                         }
                     });
@@ -2550,7 +2552,11 @@ public class VideoCastManager extends BaseCastManager
 
     @Override
     protected MediaRouteDialogFactory getMediaRouteDialogFactory() {
-        return new VideoMediaRouteDialogFactory();
+        return mediaRouteDialogFactory;
+    }
+
+    public void setMediaRouteDialogFactory(MediaRouteDialogFactory mediaRouteDialogFactory) {
+        this.mediaRouteDialogFactory = mediaRouteDialogFactory;
     }
 
     class CastListener extends Cast.Listener {
