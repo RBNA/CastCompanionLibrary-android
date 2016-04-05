@@ -111,6 +111,11 @@ public class MiniController extends RelativeLayout implements IMiniController {
         }
     }
 
+    @Override
+    public void setMediaInfo(MediaInfo mediaInfo) {
+        mStreamType = mediaInfo.getStreamType();
+    }
+
     /**
      * Removes the listener that was registered by
      * {@link #setOnMiniControllerChangedListener(OnMiniControllerChangedListener)}
@@ -119,11 +124,6 @@ public class MiniController extends RelativeLayout implements IMiniController {
         if ((listener != null) && (mListener == listener)) {
             mListener = null;
         }
-    }
-
-    @Override
-    public void setStreamType(int streamType) {
-        mStreamType = streamType;
     }
 
     @Override

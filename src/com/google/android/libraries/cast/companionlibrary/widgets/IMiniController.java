@@ -77,7 +77,7 @@ public interface IMiniController {
      * Sets the type of stream. <code>streamType</code> can be {@link MediaInfo#STREAM_TYPE_LIVE}
      * or {@link MediaInfo#STREAM_TYPE_BUFFERED}
      */
-    public void setStreamType(int streamType);
+    public void setMediaInfo(MediaInfo mediaInfo);
 
     /**
      * Sets the progress of stream.

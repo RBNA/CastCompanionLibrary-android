@@ -61,7 +61,6 @@ import com.google.android.gms.common.images.WebImage;
 import com.google.android.libraries.cast.companionlibrary.R;
 import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumer;
 import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumerImpl;
-import com.google.android.libraries.cast.companionlibrary.cast.dialog.video.VideoMediaRouteDialogFactory;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.CastException;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.OnFailedListener;
@@ -136,6 +135,9 @@ public class VideoCastManager extends BaseCastManager
         implements OnMiniControllerChangedListener, OnFailedListener {
 
     private static final String TAG = LogUtils.makeLogTag(VideoCastManager.class);
+
+    private static final String CUSTOM_ITEM_QUEUE_TYPE = "type";
+    private static final String CUSTOM_ITEM_QUEUE_TYPE_LINEAR = "linear";
 
     public static final String EXTRA_HAS_AUTH = "hasAuth";
     public static final String EXTRA_MEDIA = "media";
@@ -271,6 +273,13 @@ public class VideoCastManager extends BaseCastManager
         return sInstance;
     }
 
+    public static boolean isMediaInfoLinearStream(MediaInfo mediaInfo) {
+        if (mediaInfo.getCustomData() != null) {
+            return mediaInfo.getCustomData().optString(CUSTOM_ITEM_QUEUE_TYPE, "").equals(CUSTOM_ITEM_QUEUE_TYPE_LINEAR);
+        }
+        return false;
+    }
+
     @Override
     protected void onFeaturesUpdated(int capabilities) {
         if (isFeatureEnabled(FEATURE_CAPTIONS_PREFERENCE)) {
@@ -292,13 +301,13 @@ public class VideoCastManager extends BaseCastManager
         if (mRemoteMediaPlayer.getStreamDuration() > 0 || isRemoteStreamLive()) {
             MediaInfo mediaInfo = getRemoteMediaInformation();
             MediaMetadata mm = mediaInfo.getMetadata();
-            controller.setStreamType(mediaInfo.getStreamType());
+            controller.setMediaInfo(mediaInfo);
             controller.setPlaybackStatus(mState, mIdleReason);
             updateProgress();
             if (miniControllerUpdater != null) {
                 miniControllerUpdater.updateMiniController(controller, mediaInfo);
             } else {
-                controller.setStreamType(mediaInfo.getStreamType());
+                controller.setMediaInfo(mediaInfo);
                 controller.setSubtitle(mContext.getResources().getString(R.string.ccl_casting_to_device,
                                                                          mDeviceName));
                 controller.setTitle(mm.getString(MediaMetadata.KEY_TITLE));

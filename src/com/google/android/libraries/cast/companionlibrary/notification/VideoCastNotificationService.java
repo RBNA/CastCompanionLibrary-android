@@ -47,6 +47,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.app.TaskStackBuilder;
 import android.support.v7.app.NotificationCompat;
+import org.json.JSONObject;
 
 /**
  * A service to provide status bar Notifications when we are casting. For JB+ versions, notification
@@ -80,7 +81,7 @@ public class VideoCastNotificationService extends Service {
     public void onCreate() {
         super.onCreate();
         mDimensionInPixels = Utils.convertDpToPixel(VideoCastNotificationService.this,
-                getResources().getDimension(R.dimen.ccl_notification_image_size));
+                                                    getResources().getDimension(R.dimen.ccl_notification_image_size));
         mCastManager = VideoCastManager.getInstance();
         readPersistedData();
         if (!mCastManager.isConnected() && !mCastManager.isConnecting()) {
@@ -90,7 +91,7 @@ public class VideoCastNotificationService extends Service {
             @Override
             public void onApplicationDisconnected(int errorCode) {
                 LOGD(TAG, "onApplicationDisconnected() was reached, stopping the notification"
-                        + " service");
+                          + " service");
                 stopSelf();
             }
 
@@ -237,7 +238,7 @@ public class VideoCastNotificationService extends Service {
      */
     private void removeNotification() {
         ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).
-                cancel(NOTIFICATION_ID);
+                                                                                      cancel(NOTIFICATION_ID);
     }
 
     private void onRemoteMediaPlayerStatusUpdated(int mediaStatus) {
@@ -264,7 +265,7 @@ public class VideoCastNotificationService extends Service {
                 case MediaStatus.PLAYER_STATE_IDLE: // (== 1)
                     mIsPlaying = false;
                     if (!mCastManager.shouldRemoteUiBeVisible(mediaStatus,
-                            mCastManager.getIdleReason())) {
+                                                              mCastManager.getIdleReason())) {
                         stopForeground(true);
                     } else {
                         setUpNotification(mCastManager.getRemoteMediaInformation());
@@ -330,7 +331,7 @@ public class VideoCastNotificationService extends Service {
         // Media metadata
         MediaMetadata metadata = info.getMetadata();
         String castingTo = getResources().getString(R.string.ccl_casting_to_device,
-                mCastManager.getDeviceName());
+                                                    mCastManager.getDeviceName());
         TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
         stackBuilder.addParentStack(mTargetActivity);
         stackBuilder.addNextIntent(contentIntent);
@@ -355,18 +356,19 @@ public class VideoCastNotificationService extends Service {
                 .setContentText(castingTo)
                 .setContentIntent(contentPendingIntent)
                 .setLargeIcon(bitmap)
-                .addAction(isPlaying ? pauseOrStopResourceId
-                                : R.drawable.ic_notification_play_48dp,
-                        getString(pauseOrPlayTextResourceId), playbackPendingIntent)
                 .addAction(R.drawable.ic_notification_disconnect_24dp,
-                        getString(R.string.ccl_disconnect),
-                        stopPendingIntent)
-                .setStyle(new NotificationCompat.MediaStyle()
-                        .setShowActionsInCompactView(0, 1)
-                        .setMediaSession(mCastManager.getMediaSessionCompatToken()))
+                           getString(R.string.ccl_disconnect),
+                           stopPendingIntent)
                 .setOngoing(true)
                 .setShowWhen(false)
                 .setVisibility(Notification.VISIBILITY_PUBLIC);
+
+        if (!VideoCastManager.isMediaInfoLinearStream(info)) {
+            builder.addAction(isPlaying ? pauseOrStopResourceId : R.drawable.ic_notification_play_48dp, getString(pauseOrPlayTextResourceId), playbackPendingIntent).
+                    setStyle(new NotificationCompat.MediaStyle().setShowActionsInCompactView(0, 1).setMediaSession(mCastManager.getMediaSessionCompatToken()));
+        } else {
+            builder.setStyle(new NotificationCompat.MediaStyle().setShowActionsInCompactView(0).setMediaSession(mCastManager.getMediaSessionCompatToken()));
+        }
 
 
         mNotification = builder.build();
