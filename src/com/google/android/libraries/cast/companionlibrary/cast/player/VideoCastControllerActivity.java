@@ -153,8 +153,8 @@ public class VideoCastControllerActivity extends ActionBarActivity implements
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
-        getMenuInflater().inflate(R.menu.secondary_level_menu, menu);
-        mCastManager.addMediaRouterButton(menu, R.id.media_route_menu_item);
+//        getMenuInflater().inflate(R.menu.secondary_level_menu, menu);
+//        mCastManager.addMediaRouterButton(menu, R.id.media_route_menu_item);
         return true;
     }
 
