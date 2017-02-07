@@ -1212,7 +1212,7 @@ public class VideoCastManager extends BaseCastManager
      * @throws NoConnectionException
      * @throws IllegalArgumentException
      */
-    public void queueJumpToItem(int itemId, final JSONObject customData)
+    public void queueJumpToItem(int itemId, long position, final JSONObject customData)
             throws TransientNetworkDisconnectionException, NoConnectionException,
                    IllegalArgumentException {
         checkConnectivity();
@@ -1224,7 +1224,7 @@ public class VideoCastManager extends BaseCastManager
             throw new NoConnectionException();
         }
         mRemoteMediaPlayer
-                .queueJumpToItem(mApiClient, itemId, customData).setResultCallback(
+                .queueJumpToItem(mApiClient, itemId, position, customData).setResultCallback(
                 new ResultCallback<MediaChannelResult>() {
 
                     @Override
