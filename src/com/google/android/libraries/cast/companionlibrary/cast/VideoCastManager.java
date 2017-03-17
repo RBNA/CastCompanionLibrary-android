@@ -2302,51 +2302,52 @@ public class VideoCastManager extends BaseCastManager
                 }
             });
         } else {
-            Uri imgUrl = null;
-            Bitmap bm = null;
-            List<WebImage> images = video.getMetadata().getImages();
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                if (images.size() > 1) {
-                    imgUrl = images.get(1).getUrl();
-                } else if (images.size() == 1) {
-                    imgUrl = images.get(0).getUrl();
-                } else if (mContext != null) {
-                    // we don't have a url for image so get a placeholder image from resources
-                    bm = BitmapFactory.decodeResource(mContext.getResources(),
-                                                      R.drawable.album_art_placeholder_large);
-                }
-            } else if (!images.isEmpty()) {
-                imgUrl = images.get(0).getUrl();
-            } else {
-                // we don't have a url for image so get a placeholder image from resources
-                bm = BitmapFactory.decodeResource(mContext.getResources(),
-                                                  R.drawable.album_art_placeholder);
-            }
-            if (bm != null) {
-                MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController().getMetadata();
-                MediaMetadataCompat.Builder newBuilder = currentMetadata == null
-                                                         ? new MediaMetadataCompat.Builder()
-                                                         : new MediaMetadataCompat.Builder(currentMetadata);
-                mMediaSessionCompat.setMetadata(newBuilder
-                                                        .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bm)
-                                                        .build());
-            } else {
-                new FetchBitmapTask() {
-                    @Override
-                    protected void onPostExecute(Bitmap bitmap) {
-                        if (mMediaSessionCompat != null) {
-                            MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController()
-                                                                                     .getMetadata();
-                            MediaMetadataCompat.Builder newBuilder = currentMetadata == null
-                                                                     ? new MediaMetadataCompat.Builder()
-                                                                     : new MediaMetadataCompat.Builder(currentMetadata);
-                            mMediaSessionCompat.setMetadata(newBuilder
-                                                                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
-                                                                    .build());
-                        }
-                    }
-                }.execute(imgUrl);
-            }
+            // Following is never executed.  We load images ourselves through our BitmapFetcher implementation
+//            Uri imgUrl = null;
+//            Bitmap bm = null;
+//            List<WebImage> images = video.getMetadata().getImages();
+//            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN_MR2) {
+//                if (images.size() > 1) {
+//                    imgUrl = images.get(1).getUrl();
+//                } else if (images.size() == 1) {
+//                    imgUrl = images.get(0).getUrl();
+//                } else if (mContext != null) {
+//                    // we don't have a url for image so get a placeholder image from resources
+//                    bm = BitmapFactory.decodeResource(mContext.getResources(),
+//                                                      R.drawable.album_art_placeholder_large);
+//                }
+//            } else if (!images.isEmpty()) {
+//                imgUrl = images.get(0).getUrl();
+//            } else {
+//                // we don't have a url for image so get a placeholder image from resources
+//                bm = BitmapFactory.decodeResource(mContext.getResources(),
+//                                                  R.drawable.album_art_placeholder);
+//            }
+//            if (bm != null) {
+//                MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController().getMetadata();
+//                MediaMetadataCompat.Builder newBuilder = currentMetadata == null
+//                                                         ? new MediaMetadataCompat.Builder()
+//                                                         : new MediaMetadataCompat.Builder(currentMetadata);
+//                mMediaSessionCompat.setMetadata(newBuilder
+//                                                        .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bm)
+//                                                        .build());
+//            } else {
+//                new FetchBitmapTask() {
+//                    @Override
+//                    protected void onPostExecute(Bitmap bitmap) {
+//                        if (mMediaSessionCompat != null) {
+//                            MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController()
+//                                                                                     .getMetadata();
+//                            MediaMetadataCompat.Builder newBuilder = currentMetadata == null
+//                                                                     ? new MediaMetadataCompat.Builder()
+//                                                                     : new MediaMetadataCompat.Builder(currentMetadata);
+//                            mMediaSessionCompat.setMetadata(newBuilder
+//                                                                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
+//                                                                    .build());
+//                        }
+//                    }
+//                }.execute(imgUrl);
+//            }
         }
     }
 
