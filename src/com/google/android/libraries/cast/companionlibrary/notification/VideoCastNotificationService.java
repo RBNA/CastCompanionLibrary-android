@@ -30,7 +30,6 @@ import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCa
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.CastException;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
-import com.google.android.libraries.cast.companionlibrary.cast.player.VideoCastControllerActivity;
 import com.google.android.libraries.cast.companionlibrary.utils.FetchBitmapTask;
 import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
 import com.google.android.libraries.cast.companionlibrary.utils.Utils;
@@ -406,9 +405,10 @@ public class VideoCastNotificationService extends Service {
         try {
             if (targetName != null) {
                 mTargetActivity = Class.forName(targetName);
-            } else {
-                mTargetActivity = VideoCastControllerActivity.class;
             }
+//            else {
+//                mTargetActivity = VideoCastControllerActivity.class;
+//            }
 
         } catch (ClassNotFoundException e) {
             LOGE(TAG, "Failed to find the targetActivity class", e);

@@ -19,16 +19,10 @@ package com.google.android.libraries.cast.companionlibrary.widgets;
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaQueueItem;
 import com.google.android.gms.cast.MediaStatus;
-import com.google.android.libraries.cast.companionlibrary.widgets.MiniController.OnMiniControllerChangedListener;
 
 import android.graphics.Bitmap;
 import android.net.Uri;
 
-/**
- * An interface to abstract {@link MiniController} so that other components can also control the
- * MiniControllers. Clients should code against this interface when they want to control the
- * provided {@link MiniController} or other custom implementations.
- */
 public interface IMiniController {
 
     /**

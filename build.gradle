@@ -51,6 +51,20 @@ android {
             res.srcDirs = ['res']
         }
     }
+
+    buildTypes {
+        debug {
+            shrinkResources true
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../proguard-project.txt'
+        }
+
+        release {
+            shrinkResources true
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../proguard-project.txt'
+        }
+    }
 }
 
 dependencies {

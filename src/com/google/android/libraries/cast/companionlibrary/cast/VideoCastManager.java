@@ -27,8 +27,6 @@ import android.graphics.BitmapFactory;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Bundle;
-import android.preference.PreferenceScreen;
 import android.support.annotation.NonNull;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
@@ -39,7 +37,6 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
-import android.view.accessibility.CaptioningManager;
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
 import com.google.android.gms.cast.Cast.CastOptions.Builder;
@@ -50,7 +47,6 @@ import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaMetadata;
 import com.google.android.gms.cast.MediaQueueItem;
 import com.google.android.gms.cast.MediaStatus;
-import com.google.android.gms.cast.MediaTrack;
 import com.google.android.gms.cast.RemoteMediaPlayer;
 import com.google.android.gms.cast.RemoteMediaPlayer.MediaChannelResult;
 import com.google.android.gms.cast.TextTrackStyle;
@@ -67,18 +63,13 @@ import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConn
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.OnFailedListener;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
 import com.google.android.libraries.cast.companionlibrary.cast.player.MediaAuthService;
-import com.google.android.libraries.cast.companionlibrary.cast.player.VideoCastController;
-import com.google.android.libraries.cast.companionlibrary.cast.player.VideoCastControllerActivity;
-import com.google.android.libraries.cast.companionlibrary.cast.tracks.OnTracksSelectedListener;
-import com.google.android.libraries.cast.companionlibrary.cast.tracks.TracksPreferenceManager;
 import com.google.android.libraries.cast.companionlibrary.notification.VideoCastNotificationService;
 import com.google.android.libraries.cast.companionlibrary.remotecontrol.VideoIntentReceiver;
 import com.google.android.libraries.cast.companionlibrary.utils.FetchBitmapTask;
 import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
 import com.google.android.libraries.cast.companionlibrary.utils.Utils;
 import com.google.android.libraries.cast.companionlibrary.widgets.IMiniController;
-import com.google.android.libraries.cast.companionlibrary.widgets.MiniController;
-import com.google.android.libraries.cast.companionlibrary.widgets.MiniController.OnMiniControllerChangedListener;
+import com.google.android.libraries.cast.companionlibrary.widgets.OnMiniControllerChangedListener;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -116,7 +107,7 @@ import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.
  * <li>FEATURE_WIFI_RECONNECT: to enable reconnection logic</li>
  * <li>FEATURE_CAPTIONS_PREFERENCE: to enable Closed Caption Preference handling logic</li>
  * </ul>
- * Callers can add {@link MiniController} components to their application pages by adding the
+ * Callers can add {@link IMiniController} components to their application pages by adding the
  * corresponding widget to their layout xml and then calling <code>addMiniController()</code>. This
  * class manages various states of the remote cast device. Client applications, however, can
  * complement the default behavior of this class by hooking into various callbacks that it provides
@@ -153,14 +144,11 @@ public class VideoCastManager extends BaseCastManager
     public static final String PREFS_KEY_START_ACTIVITY = "ccl-start-cast-activity";
     public static final String PREFS_KEY_NEXT_PREV_POLICY = "ccl-next-prev-policy";
     public static final String PREFS_KEY_IMMERSIVE_MODE = "ccl-cast-contoller-immersive";
-    private TracksPreferenceManager mTrackManager;
     private ComponentName mMediaEventReceiver;
     private MediaQueue mMediaQueue;
     private MediaStatus mMediaStatus;
     private Timer mProgressTimer;
     private UpdateProgressTask mProgressTask;
-    private int mNextPreviousVisibilityPolicy
-            = VideoCastController.NEXT_PREV_VISIBILITY_POLICY_DISABLED;
     private BitmapFetcher bitmapFetcher;
     private MediaRouteDialogFactory mediaRouteDialogFactory;
 
@@ -188,8 +176,6 @@ public class VideoCastManager extends BaseCastManager
     private String mDataNamespace;
     private Cast.MessageReceivedCallback mDataChannel;
     private final Set<VideoCastConsumer> mVideoConsumers = new CopyOnWriteArraySet<>();
-    private final Set<OnTracksSelectedListener> mTracksSelectedListeners =
-            new CopyOnWriteArraySet<>();
     private MediaAuthService mAuthService;
     private long mLiveStreamDuration = DEFAULT_LIVE_STREAM_DURATION_MS;
     private MediaQueueItem mPreLoadingItem;
@@ -229,9 +215,6 @@ public class VideoCastManager extends BaseCastManager
         super(context, applicationId);
         LOGD(TAG, "VideoCastManager is instantiated");
         mDataNamespace = dataNamespace;
-        if (targetActivity == null) {
-            targetActivity = VideoCastControllerActivity.class;
-        }
         mTargetActivity = targetActivity;
         mPreferenceAccessor.saveStringToPreference(PREFS_KEY_CAST_ACTIVITY_NAME,
                                                    mTargetActivity.getName());
@@ -282,10 +265,10 @@ public class VideoCastManager extends BaseCastManager
 
     @Override
     protected void onFeaturesUpdated(int capabilities) {
-        if (isFeatureEnabled(FEATURE_CAPTIONS_PREFERENCE)) {
-            mTrackManager = new TracksPreferenceManager(mContext.getApplicationContext());
-            registerCaptionListener(mContext.getApplicationContext());
-        }
+//        if (isFeatureEnabled(FEATURE_CAPTIONS_PREFERENCE)) {
+//            mTrackManager = new TracksPreferenceManager(mContext.getApplicationContext());
+//            registerCaptionListener(mContext.getApplicationContext());
+//        }
     }
 
     /**
@@ -415,72 +398,72 @@ public class VideoCastManager extends BaseCastManager
         mPreferenceAccessor.saveBooleanToPreference(PREFS_KEY_START_ACTIVITY, true);
     }
 
-    /**
-     * Launches the VideoCastControllerActivity that provides a default Cast Player page.
-     *
-     * @param context      The context to use for starting the activity
-     * @param mediaWrapper a bundle wrapper for the media that is or will be casted
-     * @param position     Starting point, in milliseconds,  of the media playback
-     * @param shouldStart  indicates if the remote playback should start after launching the new
-     *                     page
-     * @param customData   Optional {@link JSONObject}
-     */
-    public void startVideoCastControllerActivity(Context context, Bundle mediaWrapper, int position,
-                                                 boolean shouldStart, JSONObject customData) {
-        Intent intent = new Intent(context, VideoCastControllerActivity.class);
-        intent.putExtra(EXTRA_MEDIA, mediaWrapper);
-        intent.putExtra(EXTRA_START_POINT, position);
-        intent.putExtra(EXTRA_SHOULD_START, shouldStart);
-        if (customData != null) {
-            intent.putExtra(EXTRA_CUSTOM_DATA, customData.toString());
-        }
-        setFlagForStartCastControllerActivity();
-        context.startActivity(intent);
-    }
+//    /**
+//     * Launches the VideoCastControllerActivity that provides a default Cast Player page.
+//     *
+//     * @param context      The context to use for starting the activity
+//     * @param mediaWrapper a bundle wrapper for the media that is or will be casted
+//     * @param position     Starting point, in milliseconds,  of the media playback
+//     * @param shouldStart  indicates if the remote playback should start after launching the new
+//     *                     page
+//     * @param customData   Optional {@link JSONObject}
+//     */
+//    public void startVideoCastControllerActivity(Context context, Bundle mediaWrapper, int position,
+//                                                 boolean shouldStart, JSONObject customData) {
+//        Intent intent = new Intent(context, VideoCastControllerActivity.class);
+//        intent.putExtra(EXTRA_MEDIA, mediaWrapper);
+//        intent.putExtra(EXTRA_START_POINT, position);
+//        intent.putExtra(EXTRA_SHOULD_START, shouldStart);
+//        if (customData != null) {
+//            intent.putExtra(EXTRA_CUSTOM_DATA, customData.toString());
+//        }
+//        setFlagForStartCastControllerActivity();
+//        context.startActivity(intent);
+//    }
+//
+//    /**
+//     * Launches the {@link VideoCastControllerActivity} that provides a default Cast Player page.
+//     *
+//     * @param context      The context to use for starting the activity
+//     * @param mediaWrapper A bundle wrapper for the media that is or will be casted
+//     * @param position     Starting point, in milliseconds,  of the media playback
+//     * @param shouldStart  Indicates if the remote playback should start after launching the new
+//     *                     page
+//     */
+//    public void startVideoCastControllerActivity(Context context, Bundle mediaWrapper, int position,
+//                                                 boolean shouldStart) {
+//        startVideoCastControllerActivity(context, mediaWrapper, position, shouldStart, null);
+//    }
 
-    /**
-     * Launches the {@link VideoCastControllerActivity} that provides a default Cast Player page.
-     *
-     * @param context      The context to use for starting the activity
-     * @param mediaWrapper A bundle wrapper for the media that is or will be casted
-     * @param position     Starting point, in milliseconds,  of the media playback
-     * @param shouldStart  Indicates if the remote playback should start after launching the new
-     *                     page
-     */
-    public void startVideoCastControllerActivity(Context context, Bundle mediaWrapper, int position,
-                                                 boolean shouldStart) {
-        startVideoCastControllerActivity(context, mediaWrapper, position, shouldStart, null);
-    }
-
-    /**
-     * Launches the {@link VideoCastControllerActivity} that provides a default Cast Player page.
-     * This variation should be used when an
-     * {@link com.google.android.libraries.cast.companionlibrary.cast.player.MediaAuthService}
-     * needs to be used.
-     */
-    public void startVideoCastControllerActivity(Context context, MediaAuthService authService) {
-        if (authService != null) {
-            mAuthService = authService;
-            Intent intent = new Intent(context, VideoCastControllerActivity.class);
-            intent.putExtra(EXTRA_HAS_AUTH, true);
-            setFlagForStartCastControllerActivity();
-            context.startActivity(intent);
-        }
-    }
-
-    /**
-     * Launches the {@link VideoCastControllerActivity} that provides a default Cast Player page.
-     *
-     * @param context     The context to use for starting the activity
-     * @param mediaInfo   The media that is or will be casted
-     * @param position    Starting point, in milliseconds,  of the media playback
-     * @param shouldStart Indicates if the remote playback should start after launching the new page
-     */
-    public void startVideoCastControllerActivity(Context context,
-                                                 MediaInfo mediaInfo, int position, boolean shouldStart) {
-        startVideoCastControllerActivity(context, Utils.mediaInfoToBundle(mediaInfo), position,
-                                         shouldStart);
-    }
+//    /**
+//     * Launches the {@link VideoCastControllerActivity} that provides a default Cast Player page.
+//     * This variation should be used when an
+//     * {@link com.google.android.libraries.cast.companionlibrary.cast.player.MediaAuthService}
+//     * needs to be used.
+//     */
+//    public void startVideoCastControllerActivity(Context context, MediaAuthService authService) {
+//        if (authService != null) {
+//            mAuthService = authService;
+//            Intent intent = new Intent(context, VideoCastControllerActivity.class);
+//            intent.putExtra(EXTRA_HAS_AUTH, true);
+//            setFlagForStartCastControllerActivity();
+//            context.startActivity(intent);
+//        }
+//    }
+//
+//    /**
+//     * Launches the {@link VideoCastControllerActivity} that provides a default Cast Player page.
+//     *
+//     * @param context     The context to use for starting the activity
+//     * @param mediaInfo   The media that is or will be casted
+//     * @param position    Starting point, in milliseconds,  of the media playback
+//     * @param shouldStart Indicates if the remote playback should start after launching the new page
+//     */
+//    public void startVideoCastControllerActivity(Context context,
+//                                                 MediaInfo mediaInfo, int position, boolean shouldStart) {
+//        startVideoCastControllerActivity(context, Utils.mediaInfoToBundle(mediaInfo), position,
+//                                         shouldStart);
+//    }
 
     /**
      * Returns the instance of
@@ -2611,7 +2594,6 @@ public class VideoCastManager extends BaseCastManager
      * This activity will also be invoked from the notification shade. If {@code null} is returned,
      * this library will use a default implementation.
      *
-     * @see {@link VideoCastControllerActivity}
      */
     public Class<?> getTargetActivity() {
         return mTargetActivity;
@@ -2797,109 +2779,6 @@ public class VideoCastManager extends BaseCastManager
         }
     }
 
-    @SuppressLint("NewApi")
-    private void registerCaptionListener(final Context context) {
-        if (Utils.IS_KITKAT_OR_ABOVE) {
-            CaptioningManager captioningManager =
-                    (CaptioningManager) context.getSystemService(Context.CAPTIONING_SERVICE);
-            captioningManager.addCaptioningChangeListener(
-                    new CaptioningManager.CaptioningChangeListener() {
-                        @Override
-                        public void onEnabledChanged(boolean enabled) {
-                            onTextTrackEnabledChanged(enabled);
-                        }
-
-                        @Override
-                        public void onUserStyleChanged(
-                                CaptioningManager.CaptionStyle userStyle) {
-                            onTextTrackStyleChanged(mTrackManager.getTextTrackStyle());
-                        }
-
-                        @Override
-                        public void onFontScaleChanged(float fontScale) {
-                            onTextTrackStyleChanged(mTrackManager.getTextTrackStyle());
-                        }
-
-                        @Override
-                        public void onLocaleChanged(Locale locale) {
-                            onTextTrackLocaleChanged(locale);
-                        }
-                    }
-                                                         );
-        }
-    }
-
-    /**
-     * Updates the summary of the captions between "on" and "off" based on the user selected
-     * preferences. This can be called by the caller application when they add captions settings to
-     * their preferences. Preferably this should be called in the {@code onResume()} of the
-     * PreferenceActivity so that it gets updated when needed.
-     */
-    public void updateCaptionSummary(String captionScreenKey, PreferenceScreen preferenceScreen) {
-        int status = R.string.ccl_info_na;
-        if (isFeatureEnabled(FEATURE_CAPTIONS_PREFERENCE)) {
-            status = mTrackManager.isCaptionEnabled() ? R.string.ccl_on : R.string.ccl_off;
-        }
-        preferenceScreen.findPreference(captionScreenKey)
-                        .setSummary(status);
-    }
-
-    /**
-     * Returns the instance of {@link TracksPreferenceManager} that is being used.
-     */
-    public TracksPreferenceManager getTracksPreferenceManager() {
-        return mTrackManager;
-    }
-
-    /**
-     * Returns the list of current active tracks. If there is no remote media, then this will
-     * return <code>null</code>.
-     */
-    public long[] getActiveTrackIds() {
-        if (mRemoteMediaPlayer != null && mRemoteMediaPlayer.getMediaStatus() != null) {
-            return mRemoteMediaPlayer.getMediaStatus().getActiveTrackIds();
-        }
-        return null;
-    }
-
-    /**
-     * Adds an
-     * {@link com.google.android.libraries.cast.companionlibrary.cast.tracks.OnTracksSelectedListener} // NOLINT
-     * to the lis of listeners.
-     */
-    public void addTracksSelectedListener(OnTracksSelectedListener listener) {
-        if (listener != null) {
-            mTracksSelectedListeners.add(listener);
-        }
-    }
-
-    /**
-     * Removes an
-     * {@link com.google.android.libraries.cast.companionlibrary.cast.tracks.OnTracksSelectedListener} // NOLINT
-     * from the lis of listeners.
-     */
-    public void removeTracksSelectedListener(OnTracksSelectedListener listener) {
-        if (listener != null) {
-            mTracksSelectedListeners.remove(listener);
-        }
-    }
-
-    /**
-     * Notifies all the
-     * {@link com.google.android.libraries.cast.companionlibrary.cast.tracks.OnTracksSelectedListener} // NOLINT
-     * that the set of active tracks has changed.
-     *
-     * @param tracks the set of active tracks. Must be {@code non-null} but can be an empty list.
-     */
-    public void notifyTracksSelectedListeners(List<MediaTrack> tracks) {
-        if (tracks == null) {
-            throw new IllegalArgumentException("tracks must not be null");
-        }
-        for (OnTracksSelectedListener listener : mTracksSelectedListeners) {
-            listener.onTracksSelected(tracks);
-        }
-    }
-
     public final MediaQueue getMediaQueue() {
         return mMediaQueue;
     }
@@ -2958,33 +2837,32 @@ public class VideoCastManager extends BaseCastManager
         }
     }
 
-    /**
-     * Sets the policy to be used for the visibility of skip forward/backward on the {@link
-     * VideoCastControllerActivity}. Note that the new policy is enforced the next time that
-     * activity is opened and does not apply to the currently runnig one, if any.
-     *
-     * @param policy can be one of {@link VideoCastController#NEXT_PREV_VISIBILITY_POLICY_DISABLED},
-     *               {@link VideoCastController#NEXT_PREV_VISIBILITY_POLICY_HIDDEN} or
-     *               {@link VideoCastController#NEXT_PREV_VISIBILITY_POLICY_ALWAYS}.
-     */
-    public void setNextPreviousVisibilityPolicy(final int policy) {
-        switch (policy) {
-            case VideoCastController.NEXT_PREV_VISIBILITY_POLICY_DISABLED:
-            case VideoCastController.NEXT_PREV_VISIBILITY_POLICY_ALWAYS:
-            case VideoCastController.NEXT_PREV_VISIBILITY_POLICY_HIDDEN:
-                mNextPreviousVisibilityPolicy = policy;
-                mPreferenceAccessor.saveIntToPreference(PREFS_KEY_NEXT_PREV_POLICY, policy);
-                return;
-            default:
-                LOGD(TAG, "Invalid value for the NextPreviousVisibilityPolicy was requested");
-        }
-        throw new IllegalArgumentException(
-                "Invalid value for the NextPreviousVisibilityPolicy was requested");
-    }
+//    /**
+//     * Sets the policy to be used for the visibility of skip forward/backward on the {@link
+//     * VideoCastControllerActivity}. Note that the new policy is enforced the next time that
+//     * activity is opened and does not apply to the currently runnig one, if any.
+//     *
+//     * @param policy can be one of {@link VideoCastController#NEXT_PREV_VISIBILITY_POLICY_DISABLED},
+//     *               {@link VideoCastController#NEXT_PREV_VISIBILITY_POLICY_HIDDEN} or
+//     *               {@link VideoCastController#NEXT_PREV_VISIBILITY_POLICY_ALWAYS}.
+//     */
+//    public void setNextPreviousVisibilityPolicy(final int policy) {
+//        switch (policy) {
+//            case VideoCastController.NEXT_PREV_VISIBILITY_POLICY_DISABLED:
+//            case VideoCastController.NEXT_PREV_VISIBILITY_POLICY_ALWAYS:
+//            case VideoCastController.NEXT_PREV_VISIBILITY_POLICY_HIDDEN:
+//                mNextPreviousVisibilityPolicy = policy;
+//                mPreferenceAccessor.saveIntToPreference(PREFS_KEY_NEXT_PREV_POLICY, policy);
+//                return;
+//            default:
+//                LOGD(TAG, "Invalid value for the NextPreviousVisibilityPolicy was requested");
+//        }
+//        throw new IllegalArgumentException(
+//                "Invalid value for the NextPreviousVisibilityPolicy was requested");
+//    }
 
     /**
-     * Turns on/off the immersive mode for the full screen cast controller
-     * {@link VideoCastControllerActivity}. Calls to this will take effect the next time that
+     * Turns on/off the immersive mode for the full screen cast controller Calls to this will take effect the next time that
      * activity is launched so it is recommended to be called early in the application lifecycle.
      */
     public void setCastControllerImmersive(boolean mode) {
