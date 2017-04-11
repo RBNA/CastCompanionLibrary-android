@@ -31,7 +31,6 @@ repositories {
     }
 }
 
-//apply plugin: 'android-sdk-manager'
 apply plugin: 'com.android.library'
 
 android {
@@ -54,15 +53,7 @@ android {
 
     buildTypes {
         debug {
-            shrinkResources true
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../proguard-project.txt'
-        }
 
-        release {
-            shrinkResources true
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../proguard-project.txt'
         }
     }
 }
