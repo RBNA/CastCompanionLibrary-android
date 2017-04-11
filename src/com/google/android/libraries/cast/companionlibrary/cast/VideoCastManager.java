@@ -23,9 +23,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources.NotFoundException;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.media.AudioManager;
-import android.net.Uri;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.v4.media.MediaMetadataCompat;
@@ -54,7 +52,6 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
-import com.google.android.gms.common.images.WebImage;
 import com.google.android.libraries.cast.companionlibrary.R;
 import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumer;
 import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumerImpl;
@@ -62,10 +59,8 @@ import com.google.android.libraries.cast.companionlibrary.cast.exceptions.CastEx
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.OnFailedListener;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
-import com.google.android.libraries.cast.companionlibrary.cast.player.MediaAuthService;
 import com.google.android.libraries.cast.companionlibrary.notification.VideoCastNotificationService;
 import com.google.android.libraries.cast.companionlibrary.remotecontrol.VideoIntentReceiver;
-import com.google.android.libraries.cast.companionlibrary.utils.FetchBitmapTask;
 import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
 import com.google.android.libraries.cast.companionlibrary.utils.Utils;
 import com.google.android.libraries.cast.companionlibrary.widgets.IMiniController;
@@ -176,7 +171,7 @@ public class VideoCastManager extends BaseCastManager
     private String mDataNamespace;
     private Cast.MessageReceivedCallback mDataChannel;
     private final Set<VideoCastConsumer> mVideoConsumers = new CopyOnWriteArraySet<>();
-    private MediaAuthService mAuthService;
+    //private MediaAuthService mAuthService;
     private long mLiveStreamDuration = DEFAULT_LIVE_STREAM_DURATION_MS;
     private MediaQueueItem mPreLoadingItem;
     private MiniControllerUpdater miniControllerUpdater;
@@ -464,32 +459,32 @@ public class VideoCastManager extends BaseCastManager
 //        startVideoCastControllerActivity(context, Utils.mediaInfoToBundle(mediaInfo), position,
 //                                         shouldStart);
 //    }
-
-    /**
-     * Returns the instance of
-     * {@link com.google.android.libraries.cast.companionlibrary.cast.player.MediaAuthService},
-     * or null if there is no such instance.
-     */
-    public MediaAuthService getMediaAuthService() {
-        return mAuthService;
-    }
-
-    /**
-     * Sets the
-     * {@link com.google.android.libraries.cast.companionlibrary.cast.player.MediaAuthService}.
-     */
-    public void setMediaAuthService(MediaAuthService authService) {
-        mAuthService = authService;
-    }
-
-    /**
-     * Removes the pointer to the
-     * {@link com.google.android.libraries.cast.companionlibrary.cast.player.MediaAuthService} to
-     * avoid any leak.
-     */
-    public void removeMediaAuthService() {
-        mAuthService = null;
-    }
+//
+//    /**
+//     * Returns the instance of
+//     * {@link com.google.android.libraries.cast.companionlibrary.cast.player.MediaAuthService},
+//     * or null if there is no such instance.
+//     */
+//    public MediaAuthService getMediaAuthService() {
+//        return mAuthService;
+//    }
+//
+//    /**
+//     * Sets the
+//     * {@link com.google.android.libraries.cast.companionlibrary.cast.player.MediaAuthService}.
+//     */
+//    public void setMediaAuthService(MediaAuthService authService) {
+//        mAuthService = authService;
+//    }
+//
+//    /**
+//     * Removes the pointer to the
+//     * {@link com.google.android.libraries.cast.companionlibrary.cast.player.MediaAuthService} to
+//     * avoid any leak.
+//     */
+//    public void removeMediaAuthService() {
+//        mAuthService = null;
+//    }
 
     /**
      * Returns the active {@link RemoteMediaPlayer} instance. Since there are a number of media
