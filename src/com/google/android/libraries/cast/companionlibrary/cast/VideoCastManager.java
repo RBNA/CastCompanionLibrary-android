@@ -53,18 +53,17 @@ import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 import com.google.android.libraries.cast.companionlibrary.R;
-import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumer;
-import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumerImpl;
-import com.google.android.libraries.cast.companionlibrary.cast.exceptions.CastException;
-import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
-import com.google.android.libraries.cast.companionlibrary.cast.exceptions.OnFailedListener;
-import com.google.android.libraries.cast.companionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
 import com.google.android.libraries.cast.companionlibrary.notification.VideoCastNotificationService;
 import com.google.android.libraries.cast.companionlibrary.remotecontrol.VideoIntentReceiver;
 import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
 import com.google.android.libraries.cast.companionlibrary.utils.Utils;
-import com.google.android.libraries.cast.companionlibrary.widgets.IMiniController;
-import com.google.android.libraries.cast.companionlibrary.widgets.OnMiniControllerChangedListener;
+import com.rbtv.core.cast.CastException;
+import com.rbtv.core.cast.CastListenerImpl;
+import com.rbtv.core.cast.MiniControllerInterface;
+import com.rbtv.core.cast.NoConnectionException;
+import com.rbtv.core.cast.OnFailedListener;
+import com.rbtv.core.cast.OnMiniControllerChangedListener;
+import com.rbtv.core.cast.TransientNetworkDisconnectionException;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -102,15 +101,15 @@ import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.
  * <li>FEATURE_WIFI_RECONNECT: to enable reconnection logic</li>
  * <li>FEATURE_CAPTIONS_PREFERENCE: to enable Closed Caption Preference handling logic</li>
  * </ul>
- * Callers can add {@link IMiniController} components to their application pages by adding the
+ * Callers can add {@link MiniControllerInterface} components to their application pages by adding the
  * corresponding widget to their layout xml and then calling <code>addMiniController()</code>. This
  * class manages various states of the remote cast device. Client applications, however, can
  * complement the default behavior of this class by hooking into various callbacks that it provides
  * (see
- * {@link com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumer}).
+ * {@link com.rbtv.core.cast.CastListener}).
  * Since the number of these callbacks is usually much larger than what a single application might
  * be interested in, there is a no-op implementation of this interface (see
- * {@link VideoCastConsumerImpl}) that applications can subclass to override only those methods that
+ * {@link CastListenerImpl}) that applications can subclass to override only those methods that
  * they are interested in. Since this library depends on the cast functionalities provided by the
  * Google Play services, the library checks to ensure that the right version of that service is
  * installed. It also provides a simple static method {@code checkGooglePlayServices()} that clients
@@ -160,8 +159,8 @@ public class VideoCastManager extends BaseCastManager
 
     private static VideoCastManager sInstance;
     private Class<?> mTargetActivity;
-    private final Set<IMiniController> mMiniControllers = Collections
-            .synchronizedSet(new HashSet<IMiniController>());
+    private final Set<MiniControllerInterface> mMiniControllers = Collections
+            .synchronizedSet(new HashSet<MiniControllerInterface>());
     private AudioManager mAudioManager;
     private RemoteMediaPlayer mRemoteMediaPlayer;
     private MediaSessionCompat mMediaSessionCompat;
@@ -170,7 +169,7 @@ public class VideoCastManager extends BaseCastManager
     private int mIdleReason;
     private String mDataNamespace;
     private Cast.MessageReceivedCallback mDataChannel;
-    private final Set<VideoCastConsumer> mVideoConsumers = new CopyOnWriteArraySet<>();
+    private final Set<com.rbtv.core.cast.CastListener> mVideoConsumers = new CopyOnWriteArraySet<>();
     //private MediaAuthService mAuthService;
     private long mLiveStreamDuration = DEFAULT_LIVE_STREAM_DURATION_MS;
     private MediaQueueItem mPreLoadingItem;
@@ -272,7 +271,7 @@ public class VideoCastManager extends BaseCastManager
      * @throws TransientNetworkDisconnectionException
      * @throws NoConnectionException
      */
-    private void updateMiniController(IMiniController controller)
+    private void updateMiniController(MiniControllerInterface controller)
             throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         checkRemoteMediaPlayerAvailable();
@@ -299,7 +298,7 @@ public class VideoCastManager extends BaseCastManager
      */
     public void updateMiniControllers() {
         synchronized (mMiniControllers) {
-            for (final IMiniController controller : mMiniControllers) {
+            for (final MiniControllerInterface controller : mMiniControllers) {
                 try {
                     updateMiniController(controller);
                 } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
@@ -348,14 +347,14 @@ public class VideoCastManager extends BaseCastManager
 
     @Override
     public void onUpcomingPlayClicked(View view, MediaQueueItem upcomingItem) {
-        for (VideoCastConsumer consumer : mVideoConsumers) {
+        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
             consumer.onUpcomingPlayClicked(view, upcomingItem);
         }
     }
 
     @Override
     public void onUpcomingStopClicked(View view, MediaQueueItem upcomingItem) {
-        for (VideoCastConsumer consumer : mVideoConsumers) {
+        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
             consumer.onUpcomingStopClicked(view, upcomingItem);
         }
     }
@@ -369,7 +368,7 @@ public class VideoCastManager extends BaseCastManager
     public void updateMiniControllersVisibility(boolean visible) {
         LOGD(TAG, "updateMiniControllersVisibility() reached with visibility: " + visible);
         synchronized (mMiniControllers) {
-            for (IMiniController controller : mMiniControllers) {
+            for (MiniControllerInterface controller : mMiniControllers) {
                 controller.setCurrentVisibility(visible);
             }
         }
@@ -377,7 +376,7 @@ public class VideoCastManager extends BaseCastManager
 
     public void updateMiniControllersVisibilityForUpcoming(MediaQueueItem item) {
         synchronized (mMiniControllers) {
-            for (IMiniController controller : mMiniControllers) {
+            for (MiniControllerInterface controller : mMiniControllers) {
                 controller.setUpcomingItem(item);
                 controller.setUpcomingVisibility(item != null);
             }
@@ -814,7 +813,7 @@ public class VideoCastManager extends BaseCastManager
         if (mMediaSessionCompat != null && isFeatureEnabled(FEATURE_LOCKSCREEN)) {
             mMediaRouter.setMediaSessionCompat(null);
         }
-        for (VideoCastConsumer consumer : mVideoConsumers) {
+        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
             consumer.onApplicationDisconnected(errorCode);
         }
         if (mMediaRouter != null) {
@@ -838,7 +837,7 @@ public class VideoCastManager extends BaseCastManager
         try {
             String appStatus = Cast.CastApi.getApplicationStatus(mApiClient);
             LOGD(TAG, "onApplicationStatusChanged() reached: " + appStatus);
-            for (VideoCastConsumer consumer : mVideoConsumers) {
+            for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                 consumer.onApplicationStatusChanged(appStatus);
             }
         } catch (IllegalStateException e) {
@@ -852,7 +851,7 @@ public class VideoCastManager extends BaseCastManager
         try {
             volume = getVolume();
             boolean isMute = isMute();
-            for (VideoCastConsumer consumer : mVideoConsumers) {
+            for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                 consumer.onVolumeChanged(volume, isMute);
             }
         } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
@@ -903,7 +902,7 @@ public class VideoCastManager extends BaseCastManager
 
                         }
                     });
-            for (VideoCastConsumer consumer : mVideoConsumers) {
+            for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                 consumer.onApplicationConnected(appMetadata, mSessionId, wasLaunched);
             }
         } catch (TransientNetworkDisconnectionException e) {
@@ -934,7 +933,7 @@ public class VideoCastManager extends BaseCastManager
      */
     @Override
     public void onApplicationStopFailed(int errorCode) {
-        for (VideoCastConsumer consumer : mVideoConsumers) {
+        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
             consumer.onApplicationStopFailed(errorCode);
         }
     }
@@ -950,7 +949,7 @@ public class VideoCastManager extends BaseCastManager
                 onDeviceSelected(null);
             }
         } else {
-            for (VideoCastConsumer consumer : mVideoConsumers) {
+            for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                 consumer.onApplicationConnectionFailed(errorCode);
             }
             onDeviceSelected(null);
@@ -1018,7 +1017,7 @@ public class VideoCastManager extends BaseCastManager
             throw new NoConnectionException();
         }
 
-        for (VideoCastConsumer consumer : mVideoConsumers) {
+        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
             consumer.onMediaLoadStarted(media);
         }
 
@@ -1027,7 +1026,7 @@ public class VideoCastManager extends BaseCastManager
 
                               @Override
                               public void onResult(MediaChannelResult result) {
-                                  for (VideoCastConsumer consumer : mVideoConsumers) {
+                                  for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                                       consumer.onMediaLoadResult(result.getStatus().getStatusCode());
                                   }
                                   updateMiniControllers();
@@ -1087,7 +1086,7 @@ public class VideoCastManager extends BaseCastManager
                             }
                         }
 
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
+                        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                             consumer.onMediaQueueOperationResult(QUEUE_OPERATION_LOAD,
                                                                  result.getStatus().getStatusCode());
                         }
@@ -1131,7 +1130,7 @@ public class VideoCastManager extends BaseCastManager
 //
 //                            @Override
 //                            public void onResult(MediaChannelResult result) {
-//                                for (VideoCastConsumer consumer : mVideoConsumers) {
+//                                for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
 //                                    consumer.onMediaQueueOperationResult(
 //                                            QUEUE_OPERATION_INSERT_ITEMS,
 //                                            result.getStatus().getStatusCode());
@@ -1169,7 +1168,7 @@ public class VideoCastManager extends BaseCastManager
                     public void onResult(MediaChannelResult result) {
                         LOGD(TAG, "queueUpdateItems() " + result.getStatus() + result.getStatus()
                                                                                      .isSuccess());
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
+                        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                             consumer.onMediaQueueOperationResult(QUEUE_OPERATION_UPDATE_ITEMS,
                                                                  result.getStatus().getStatusCode());
                         }
@@ -1207,7 +1206,7 @@ public class VideoCastManager extends BaseCastManager
 
                     @Override
                     public void onResult(MediaChannelResult result) {
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
+                        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                             consumer.onMediaQueueOperationResult(QUEUE_OPERATION_JUMP,
                                                                  result.getStatus().getStatusCode());
                         }
@@ -1246,7 +1245,7 @@ public class VideoCastManager extends BaseCastManager
 
                     @Override
                     public void onResult(MediaChannelResult result) {
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
+                        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                             consumer.onMediaQueueOperationResult(QUEUE_OPERATION_REMOVE_ITEMS,
                                                                  result.getStatus().getStatusCode());
                         }
@@ -1286,7 +1285,7 @@ public class VideoCastManager extends BaseCastManager
 
                     @Override
                     public void onResult(MediaChannelResult result) {
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
+                        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                             consumer.onMediaQueueOperationResult(QUEUE_OPERATION_REMOVE_ITEM,
                                                                  result.getStatus().getStatusCode());
                         }
@@ -1350,7 +1349,7 @@ public class VideoCastManager extends BaseCastManager
 
                             @Override
                             public void onResult(MediaChannelResult result) {
-                                for (VideoCastConsumer consumer : mVideoConsumers) {
+                                for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                                     consumer.onMediaQueueOperationResult(QUEUE_OPERATION_REORDER,
                                                                          result.getStatus().getStatusCode());
                                 }
@@ -1384,7 +1383,7 @@ public class VideoCastManager extends BaseCastManager
 
                             @Override
                             public void onResult(MediaChannelResult result) {
-                                for (VideoCastConsumer consumer : mVideoConsumers) {
+                                for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                                     consumer.onMediaQueueOperationResult(QUEUE_OPERATION_MOVE,
                                                                          result.getStatus().getStatusCode());
                                     ;
@@ -1411,7 +1410,7 @@ public class VideoCastManager extends BaseCastManager
 
                             @Override
                             public void onResult(MediaChannelResult result) {
-                                for (VideoCastConsumer consumer : mVideoConsumers) {
+                                for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                                     consumer.onMediaQueueOperationResult(QUEUE_OPERATION_APPEND,
                                                                          result.getStatus().getStatusCode());
                                 }
@@ -1440,7 +1439,7 @@ public class VideoCastManager extends BaseCastManager
 
                     @Override
                     public void onResult(MediaChannelResult result) {
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
+                        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                             consumer.onMediaQueueOperationResult(QUEUE_OPERATION_NEXT,
                                                                  result.getStatus().getStatusCode());
                         }
@@ -1469,7 +1468,7 @@ public class VideoCastManager extends BaseCastManager
 
                     @Override
                     public void onResult(MediaChannelResult result) {
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
+                        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                             consumer.onMediaQueueOperationResult(QUEUE_OPERATION_PREV,
                                                                  result.getStatus().getStatusCode());
                         }
@@ -1506,7 +1505,7 @@ public class VideoCastManager extends BaseCastManager
 
                     @Override
                     public void onResult(MediaChannelResult result) {
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
+                        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                             consumer.onMediaQueueOperationResult(QUEUE_OPERATION_INSERT_ITEMS,
                                                                  result.getStatus().getStatusCode());
                         }
@@ -1529,7 +1528,7 @@ public class VideoCastManager extends BaseCastManager
 
                     @Override
                     public void onResult(@NonNull MediaChannelResult result) {
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
+                        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                             consumer.onMediaQueueOperationResult(QUEUE_OPERATION_INSERT_ITEMS,
                                                                  result.getStatus().getStatusCode());
                         }
@@ -1563,7 +1562,7 @@ public class VideoCastManager extends BaseCastManager
                         if (!result.getStatus().isSuccess()) {
                             LOGD(TAG, "Failed with status: " + result.getStatus());
                         }
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
+                        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                             consumer.onMediaQueueOperationResult(QUEUE_OPERATION_SET_REPEAT,
                                                                  result.getStatus().getStatusCode());
                         }
@@ -1954,7 +1953,7 @@ public class VideoCastManager extends BaseCastManager
 
             @Override
             public void onMessageReceived(CastDevice castDevice, String namespace, String message) {
-                for (VideoCastConsumer consumer : mVideoConsumers) {
+                for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                     consumer.onDataMessageReceived(message);
                 }
             }
@@ -1977,7 +1976,7 @@ public class VideoCastManager extends BaseCastManager
     }
 
     private void onMessageSendFailed(int errorCode) {
-        for (VideoCastConsumer consumer : mVideoConsumers) {
+        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
             consumer.onDataMessageSendFailed(errorCode);
         }
     }
@@ -2125,7 +2124,7 @@ public class VideoCastManager extends BaseCastManager
             }
             updateMiniControllersVisibility(!makeUiHidden);
             updateMiniControllers();
-            for (VideoCastConsumer consumer : mVideoConsumers) {
+            for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
                 consumer.onRemoteMediaPlayerStatusUpdated();
                 consumer.onVolumeChanged(volume, isMute);
             }
@@ -2154,7 +2153,7 @@ public class VideoCastManager extends BaseCastManager
         mPreLoadingItem = item;
         updateMiniControllersVisibilityForUpcoming(item);
         LOGD(TAG, "onRemoteMediaPreloadStatusUpdated() " + item);
-        for (VideoCastConsumer consumer : mVideoConsumers) {
+        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
             consumer.onRemoteMediaPreloadStatusUpdated(item);
         }
     }
@@ -2178,7 +2177,7 @@ public class VideoCastManager extends BaseCastManager
             mMediaQueue = new MediaQueue(new CopyOnWriteArrayList<MediaQueueItem>(), null, false,
                                          MediaStatus.REPEAT_MODE_REPEAT_OFF);
         }
-        for (VideoCastConsumer consumer : mVideoConsumers) {
+        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
             consumer.onMediaQueueUpdated(queueItems, item, repeatMode, shuffle);
         }
     }
@@ -2189,7 +2188,7 @@ public class VideoCastManager extends BaseCastManager
     public void onRemoteMediaPlayerMetadataUpdated() {
         LOGD(TAG, "onRemoteMediaPlayerMetadataUpdated() reached");
         updateMediaSessionMetadata();
-        for (VideoCastConsumer consumer : mVideoConsumers) {
+        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
             consumer.onRemoteMediaPlayerMetadataUpdated();
         }
         try {
@@ -2432,13 +2431,13 @@ public class VideoCastManager extends BaseCastManager
 
     /**
      * Registers an
-     * {@link com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumer}
+     * {@link com.rbtv.core.cast.CastListener}
      * interface with this class. Registered listeners will be notified of changes to a variety of
      * lifecycle and media status changes through the callbacks that the interface provides.
      *
-     * @see VideoCastConsumerImpl
+     * @see CastListenerImpl
      */
-    public synchronized void addVideoCastConsumer(VideoCastConsumer listener) {
+    public synchronized void addCastListener(com.rbtv.core.cast.CastListener listener) {
         if (listener != null) {
             addBaseCastConsumer(listener);
             mVideoConsumers.add(listener);
@@ -2448,9 +2447,9 @@ public class VideoCastManager extends BaseCastManager
 
     /**
      * Unregisters an
-     * {@link com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumer}.
+     * {@link com.google.android.libraries.cast.companionlibrary.cast.callbacks.com.rbtv.core.cast.CastListener}.
      */
-    public synchronized void removeVideoCastConsumer(VideoCastConsumer listener) {
+    public synchronized void removeCastListener(com.rbtv.core.cast.CastListener listener) {
         if (listener != null) {
             removeBaseCastConsumer(listener);
             mVideoConsumers.remove(listener);
@@ -2458,12 +2457,12 @@ public class VideoCastManager extends BaseCastManager
     }
 
     /**
-     * Adds a new {@link IMiniController} component. Callers need to provide their own
+     * Adds a new {@link MiniControllerInterface} component. Callers need to provide their own
      * {@link OnMiniControllerChangedListener}.
      *
-     * @see {@link #removeMiniController(IMiniController)}
+     * @see {@link #removeMiniController(MiniControllerInterface)}
      */
-    public void addMiniController(IMiniController miniController,
+    public void addMiniController(MiniControllerInterface miniController,
                                   OnMiniControllerChangedListener onChangedListener) {
         if (miniController != null) {
             boolean result;
@@ -2490,17 +2489,17 @@ public class VideoCastManager extends BaseCastManager
     }
 
     /**
-     * Adds a new {@link IMiniController} component and assigns {@link VideoCastManager} as the
+     * Adds a new {@link MiniControllerInterface} component and assigns {@link VideoCastManager} as the
      * {@link OnMiniControllerChangedListener} for this component.
      */
-    public void addMiniController(IMiniController miniController) {
+    public void addMiniController(MiniControllerInterface miniController) {
         addMiniController(miniController, null);
     }
 
     /**
-     * Removes a {@link IMiniController} listener from the list of listeners.
+     * Removes a {@link MiniControllerInterface} listener from the list of listeners.
      */
-    public void removeMiniController(IMiniController listener) {
+    public void removeMiniController(MiniControllerInterface listener) {
         if (listener != null) {
             synchronized (mMiniControllers) {
                 mMiniControllers.remove(listener);
@@ -2715,7 +2714,7 @@ public class VideoCastManager extends BaseCastManager
                                   }
                               }
                           });
-        for (VideoCastConsumer consumer : mVideoConsumers) {
+        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
             try {
                 consumer.onTextTrackStyleChanged(style);
             } catch (Exception e) {
@@ -2742,7 +2741,7 @@ public class VideoCastManager extends BaseCastManager
                                   }
                               }
                           });
-        for (VideoCastConsumer consumer : mVideoConsumers) {
+        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
             try {
                 consumer.onTextTrackStyleChanged(style);
             } catch (Exception e) {
@@ -2760,7 +2759,7 @@ public class VideoCastManager extends BaseCastManager
             setActiveTrackIds(new long[]{});
         }
 
-        for (VideoCastConsumer consumer : mVideoConsumers) {
+        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
             consumer.onTextTrackEnabledChanged(isEnabled);
         }
     }
@@ -2770,7 +2769,7 @@ public class VideoCastManager extends BaseCastManager
      */
     public void onTextTrackLocaleChanged(Locale locale) {
         LOGD(TAG, "onTextTrackLocaleChanged() reached");
-        for (VideoCastConsumer consumer : mVideoConsumers) {
+        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
             consumer.onTextTrackLocaleChanged(locale);
         }
     }
@@ -2823,7 +2822,7 @@ public class VideoCastManager extends BaseCastManager
                 currentPos = (int) getCurrentMediaPosition();
 
                 synchronized (mMiniControllers) {
-                    for (final IMiniController controller : mMiniControllers) {
+                    for (final MiniControllerInterface controller : mMiniControllers) {
                         controller.setProgress(currentPos, duration);
                     }
                 }
@@ -2866,7 +2865,7 @@ public class VideoCastManager extends BaseCastManager
     }
 
     public interface MiniControllerUpdater {
-        void updateMiniController(IMiniController controller, MediaInfo mediaInfo);
+        void updateMiniController(MiniControllerInterface controller, MediaInfo mediaInfo);
     }
 
     public void setMiniControllerUpdater(MiniControllerUpdater updater) {

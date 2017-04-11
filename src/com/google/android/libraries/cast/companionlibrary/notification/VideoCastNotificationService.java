@@ -16,24 +16,6 @@
 
 package com.google.android.libraries.cast.companionlibrary.notification;
 
-import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
-import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
-
-import android.util.Log;
-import com.google.android.gms.cast.ApplicationMetadata;
-import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.cast.MediaMetadata;
-import com.google.android.gms.cast.MediaStatus;
-import com.google.android.libraries.cast.companionlibrary.R;
-import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
-import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumerImpl;
-import com.google.android.libraries.cast.companionlibrary.cast.exceptions.CastException;
-import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
-import com.google.android.libraries.cast.companionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
-import com.google.android.libraries.cast.companionlibrary.utils.FetchBitmapTask;
-import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
-import com.google.android.libraries.cast.companionlibrary.utils.Utils;
-
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -46,7 +28,23 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.app.TaskStackBuilder;
 import android.support.v7.app.NotificationCompat;
-import org.json.JSONObject;
+import android.util.Log;
+import com.google.android.gms.cast.ApplicationMetadata;
+import com.google.android.gms.cast.MediaInfo;
+import com.google.android.gms.cast.MediaMetadata;
+import com.google.android.gms.cast.MediaStatus;
+import com.google.android.libraries.cast.companionlibrary.R;
+import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
+import com.google.android.libraries.cast.companionlibrary.utils.FetchBitmapTask;
+import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
+import com.google.android.libraries.cast.companionlibrary.utils.Utils;
+import com.rbtv.core.cast.CastException;
+import com.rbtv.core.cast.CastListenerImpl;
+import com.rbtv.core.cast.NoConnectionException;
+import com.rbtv.core.cast.TransientNetworkDisconnectionException;
+
+import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
+import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
 /**
  * A service to provide status bar Notifications when we are casting. For JB+ versions, notification
@@ -72,7 +70,7 @@ public class VideoCastNotificationService extends Service {
     private Notification mNotification;
     private boolean mVisible;
     private VideoCastManager mCastManager;
-    private VideoCastConsumerImpl mConsumer;
+    private CastListenerImpl mConsumer;
     private FetchBitmapTask mBitmapDecoderTask;
     private int mDimensionInPixels;
 
@@ -86,7 +84,7 @@ public class VideoCastNotificationService extends Service {
         if (!mCastManager.isConnected() && !mCastManager.isConnecting()) {
             mCastManager.reconnectSessionIfPossible();
         }
-        mConsumer = new VideoCastConsumerImpl() {
+        mConsumer = new CastListenerImpl() {
             @Override
             public void onApplicationDisconnected(int errorCode) {
                 LOGD(TAG, "onApplicationDisconnected() was reached, stopping the notification"
@@ -121,7 +119,7 @@ public class VideoCastNotificationService extends Service {
                 }
             }
         };
-        mCastManager.addVideoCastConsumer(mConsumer);
+        mCastManager.addCastListener(mConsumer);
 
     }
 
@@ -293,7 +291,7 @@ public class VideoCastNotificationService extends Service {
         }
         removeNotification();
         if (mCastManager != null && mConsumer != null) {
-            mCastManager.removeVideoCastConsumer(mConsumer);
+            mCastManager.removeCastListener(mConsumer);
             mCastManager = null;
         }
     }

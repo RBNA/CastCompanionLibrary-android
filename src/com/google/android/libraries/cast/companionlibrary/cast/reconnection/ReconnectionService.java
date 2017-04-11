@@ -16,16 +16,6 @@
 
 package com.google.android.libraries.cast.companionlibrary.cast.reconnection;
 
-import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
-import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
-
-import com.google.android.libraries.cast.companionlibrary.cast.BaseCastManager;
-import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
-import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
-import com.google.android.libraries.cast.companionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
-import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
-import com.google.android.libraries.cast.companionlibrary.utils.Utils;
-
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -35,9 +25,18 @@ import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
 import android.os.IBinder;
 import android.os.SystemClock;
+import com.google.android.libraries.cast.companionlibrary.cast.BaseCastManager;
+import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
+import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
+import com.google.android.libraries.cast.companionlibrary.utils.Utils;
+import com.rbtv.core.cast.NoConnectionException;
+import com.rbtv.core.cast.TransientNetworkDisconnectionException;
 
 import java.util.Timer;
 import java.util.TimerTask;
+
+import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
+import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
 /**
  * A service to run in the background when the playback of a media starts, to help with reconnection

@@ -16,31 +16,6 @@
 
 package com.google.android.libraries.cast.companionlibrary.cast;
 
-import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
-import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
-
-import com.google.android.gms.cast.ApplicationMetadata;
-import com.google.android.gms.cast.Cast;
-import com.google.android.gms.cast.Cast.ApplicationConnectionResult;
-import com.google.android.gms.cast.CastDevice;
-import com.google.android.gms.cast.CastMediaControlIntent;
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
-import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
-import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.common.api.Status;
-import com.google.android.libraries.cast.companionlibrary.R;
-import com.google.android.libraries.cast.companionlibrary.cast.callbacks.BaseCastConsumer;
-import com.google.android.libraries.cast.companionlibrary.cast.exceptions.CastException;
-import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
-import com.google.android.libraries.cast.companionlibrary.cast.exceptions.OnFailedListener;
-import com.google.android.libraries.cast.companionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
-import com.google.android.libraries.cast.companionlibrary.cast.reconnection.ReconnectionService;
-import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
-import com.google.android.libraries.cast.companionlibrary.utils.PreferenceAccessor;
-import com.google.android.libraries.cast.companionlibrary.utils.Utils;
-
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
@@ -61,11 +36,35 @@ import android.support.v7.media.MediaRouter;
 import android.support.v7.media.MediaRouter.RouteInfo;
 import android.view.Menu;
 import android.view.MenuItem;
+import com.google.android.gms.cast.ApplicationMetadata;
+import com.google.android.gms.cast.Cast;
+import com.google.android.gms.cast.Cast.ApplicationConnectionResult;
+import com.google.android.gms.cast.CastDevice;
+import com.google.android.gms.cast.CastMediaControlIntent;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
+import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
+import com.google.android.libraries.cast.companionlibrary.R;
+import com.google.android.libraries.cast.companionlibrary.cast.reconnection.ReconnectionService;
+import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
+import com.google.android.libraries.cast.companionlibrary.utils.PreferenceAccessor;
+import com.google.android.libraries.cast.companionlibrary.utils.Utils;
+import com.rbtv.core.cast.CastException;
+import com.rbtv.core.cast.CastListener;
+import com.rbtv.core.cast.NoConnectionException;
+import com.rbtv.core.cast.OnFailedListener;
+import com.rbtv.core.cast.TransientNetworkDisconnectionException;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+
+import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
+import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
 /**
  * An abstract class that manages connectivity to a cast device. Subclasses are expected to extend
@@ -117,7 +116,7 @@ public abstract class BaseCastManager
     protected String mDeviceName;
     protected PreferenceAccessor mPreferenceAccessor;
 
-    private final Set<BaseCastConsumer> mBaseCastConsumers = new CopyOnWriteArraySet<>();
+    private final Set<CastListener> mBaseCastConsumers = new CopyOnWriteArraySet<>();
     private boolean mDestroyOnDisconnect = false;
     protected String mApplicationId;
     protected int mReconnectionStatus = RECONNECTION_STATUS_INACTIVE;
@@ -205,7 +204,7 @@ public abstract class BaseCastManager
         } else {
             setDevice(device);
         }
-        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+        for (CastListener consumer : mBaseCastConsumers) {
             consumer.onDeviceSelected(device);
         }
     }
@@ -219,7 +218,7 @@ public abstract class BaseCastManager
      * <code>false</code>.
      */
     public final void onCastAvailabilityChanged(boolean castDevicePresent) {
-        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+        for (CastListener consumer : mBaseCastConsumers) {
             consumer.onCastAvailabilityChanged(castDevicePresent);
         }
     }
@@ -309,7 +308,7 @@ public abstract class BaseCastManager
      * cast concept and the usage of the cast button.
      */
     public final void onCastDeviceDetected(RouteInfo info) {
-        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+        for (CastListener consumer : mBaseCastConsumers) {
             consumer.onCastDeviceDetected(info);
         }
     }
@@ -345,7 +344,7 @@ public abstract class BaseCastManager
      * <li>User is in charge of controlling the visibility of this button. However, this library
      * makes it easier to do so: use the callback <code>onCastAvailabilityChanged(boolean)</code>
      * to change the visibility of the button in your client. For example, extend
-     * {@link com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumerImpl}
+     * {@link com.google.android.libraries.cast.companionlibrary.cast.callbacks.CastListenerImpl}
      * and override that method:
      *
      * <pre>
@@ -420,7 +419,7 @@ public abstract class BaseCastManager
                 stopCastDiscovery();
             }
         }
-        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+        for (CastListener consumer : mBaseCastConsumers) {
             consumer.onUiVisibilityChanged(visible);
         }
     }
@@ -656,7 +655,7 @@ public abstract class BaseCastManager
     }
 
     private void onReconnectionStatusChanged(int status) {
-        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+        for (CastListener consumer : mBaseCastConsumers) {
             consumer.onReconnectionStatusChanged(status);
         }
     }
@@ -839,7 +838,7 @@ public abstract class BaseCastManager
      * disconnect. Note: this is not called by SDK.
      */
     public void onConnectivityRecovered() {
-        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+        for (CastListener consumer : mBaseCastConsumers) {
             consumer.onConnectivityRecovered();
         }
     }
@@ -877,7 +876,7 @@ public abstract class BaseCastManager
             Cast.CastApi.requestStatus(mApiClient);
             launchApp();
 
-            for (BaseCastConsumer consumer : mBaseCastConsumers) {
+            for (CastListener consumer : mBaseCastConsumers) {
                 consumer.onConnected();
             }
 
@@ -895,7 +894,7 @@ public abstract class BaseCastManager
             boolean setDefaultRoute) {
         LOGD(TAG, "onDisconnected() reached");
         mDeviceName = null;
-        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+        for (CastListener consumer : mBaseCastConsumers) {
             consumer.onDisconnected();
         }
     }
@@ -916,7 +915,7 @@ public abstract class BaseCastManager
             mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
         }
 
-        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+        for (CastListener consumer : mBaseCastConsumers) {
             consumer.onConnectionFailed(result);
         }
     }
@@ -925,7 +924,7 @@ public abstract class BaseCastManager
     public void onConnectionSuspended(int cause) {
         mConnectionSuspended = true;
         LOGD(TAG, "onConnectionSuspended() was called with cause: " + cause);
-        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+        for (CastListener consumer : mBaseCastConsumers) {
             consumer.onConnectionSuspended(cause);
         }
     }
@@ -1015,26 +1014,26 @@ public abstract class BaseCastManager
     }
 
     /**
-     * Registers a {@link BaseCastConsumer} interface with this class. Registered listeners will be
+     * Registers a {@link CastListener} interface with this class. Registered listeners will be
      * notified of changes to a variety of lifecycle callbacks that the interface provides.
      *
      * @see {@code BaseCastConsumerImpl}
      */
-    public final void addBaseCastConsumer(BaseCastConsumer listener) {
+    public final void addBaseCastConsumer(CastListener listener) {
         if (listener != null) {
             if (mBaseCastConsumers.add(listener)) {
-                LOGD(TAG, "Successfully added the new BaseCastConsumer listener " + listener);
+                LOGD(TAG, "Successfully added the new CastListener listener " + listener);
             }
         }
     }
 
     /**
-     * Unregisters a {@link BaseCastConsumer}.
+     * Unregisters a {@link CastListener}.
      */
-    public final void removeBaseCastConsumer(BaseCastConsumer listener) {
+    public final void removeBaseCastConsumer(CastListener listener) {
         if (listener != null) {
             if (mBaseCastConsumers.remove(listener)) {
-                LOGD(TAG, "Successfully removed the existing BaseCastConsumer listener "
+                LOGD(TAG, "Successfully removed the existing CastListener listener "
                         + listener);
             }
         }
@@ -1060,7 +1059,7 @@ public abstract class BaseCastManager
     @Override
     public void onFailed(int resourceId, int statusCode) {
         LOGD(TAG, "onFailed() was called with statusCode: " + statusCode);
-        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+        for (CastListener consumer : mBaseCastConsumers) {
             consumer.onFailed(resourceId, statusCode);
         }
     }

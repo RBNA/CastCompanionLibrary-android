@@ -61,7 +61,7 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
 
  * Added Queue related APIs for handling autoplay and queue
  * Added "stop" button to notification and lockscreen for live streams in Lollipop and above
- * Expanded callbacks in VideoCastConsumer interface to provide feedback on success of queue related API calls
+ * Expanded callbacks in com.rbtv.core.cast.CastListener interface to provide feedback on success of queue related API calls
  * Extended the full-screen VideoCastControllerActivity to include next/previous for navigation through queues.
   The visibility of these new buttons can be set through VideoCastManager.setNextPreviousVisibilityPolicy(policy)
  * The MiniController now has a modified UI with an additional item for showing an upcoming media item from the queue.
@@ -95,7 +95,7 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
     * IMediaAuthService -> MediaAuthService
     * IBaseCastConsumer -> BaseCastConsumer
     * IDataCastConsumer -> DataCastConsumer
-    * IVideoCastConsumer -> VideoCastConsumer
+    * Icom.rbtv.core.cast.CastListener -> com.rbtv.core.cast.CastListener
  * Some methods have been renamed:
     * IVideoVideoCastContoller#setLine1() -> VideoCastController#setTitle()
     * IVideoVideoCastContoller#setLine2() -> VideoCastController#setSubTitle()
@@ -106,7 +106,7 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
     * VideoCastManager#startCastControllerActivity() -> startVideoCastControllerActivity()
     * BaseCastManager#incremenetDeviceVolume() -> adjustDeviceVolume()
     * TracksPreferenceManager#setupPreferences() -> setUpPreferences()
-    * VideoCastConsumer#onRemovedNamespace() -> onNamespaceRemoved()
+    * com.rbtv.core.cast.CastListener#onRemovedNamespace() -> onNamespaceRemoved()
     * MediaAuthService#start() -> startAuthorization()
     * MediaAuthService#setOnResult() -> setMediaAuthListener()
     * MediaAuthService#abort() -> abortAuthorization()
@@ -118,7 +118,7 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
     * Utils#fromMediaInfo() -> mediaInfoToBundle()
     * Utils#toMediaInfo() -> bundleToMediaInfo()
     * Utils#scaleCenterCrop -> scaleAndCenterCropBitmap()
-    * IMiniController.setSubTitle() -> setSubtitle()
+    * MiniControllerInterface.setSubTitle() -> setSubtitle()
     * MediaAuthListener#onResult() -> onAuthResult()
     * MediaAuthListener#onFailure() -> onAuthFailure()
     * BaseCastManager.clearContext() has been removed (see earlier comments)
@@ -126,9 +126,9 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
  now removed this and expect the "consumers" to handle that in the client code; the previous approach was masking
  client issues in the library while they needed to be addressed inside the client itself.
  * BaseCastManager#addMediaRouterButton(MediaRouteButton button) now has no return value (it was redundant)
- * VideoCastConsumer#onApplicationConnectionFailed() no longer returns any value.
+ * com.rbtv.core.cast.CastListener#onApplicationConnectionFailed() no longer returns any value.
  * BaseCastConsumer#onConnectionFailed(() no longer returns any value.
- * [New] There is a new callback "void onMediaLoadResult(int statusCode)" in VideoCastConsumer to
+ * [New] There is a new callback "void onMediaLoadResult(int statusCode)" in com.rbtv.core.cast.CastListener to
  inform the consumers when a load operation is finished.
  * Updated the build to use the latest gradle binaries.
  * Updated to use the latest versions of Play Services and support libraries.
