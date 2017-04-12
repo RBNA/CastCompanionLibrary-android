@@ -47,7 +47,6 @@ import com.google.android.gms.cast.MediaQueueItem;
 import com.google.android.gms.cast.MediaStatus;
 import com.google.android.gms.cast.RemoteMediaPlayer;
 import com.google.android.gms.cast.RemoteMediaPlayer.MediaChannelResult;
-import com.google.android.gms.cast.TextTrackStyle;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.ResultCallback;
@@ -64,13 +63,13 @@ import com.rbtv.core.cast.NoConnectionException;
 import com.rbtv.core.cast.OnFailedListener;
 import com.rbtv.core.cast.OnMiniControllerChangedListener;
 import com.rbtv.core.cast.TransientNetworkDisconnectionException;
+import com.rbtv.core.model.content.QueueItem;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -903,7 +902,7 @@ public class VideoCastManager extends BaseCastManager
                         }
                     });
             for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
-                consumer.onApplicationConnected(appMetadata, mSessionId, wasLaunched);
+                consumer.onApplicationConnected(mSessionId, wasLaunched);
             }
         } catch (TransientNetworkDisconnectionException e) {
             LOGE(TAG, "Failed to attach media/data channel due to network issues", e);
@@ -2154,7 +2153,8 @@ public class VideoCastManager extends BaseCastManager
         updateMiniControllersVisibilityForUpcoming(item);
         LOGD(TAG, "onRemoteMediaPreloadStatusUpdated() " + item);
         for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
-            consumer.onRemoteMediaPreloadStatusUpdated(item);
+            // TODO need this?
+            //consumer.onRemoteMediaPreloadStatusUpdated(item);
         }
     }
 
@@ -2177,6 +2177,7 @@ public class VideoCastManager extends BaseCastManager
             mMediaQueue = new MediaQueue(new CopyOnWriteArrayList<MediaQueueItem>(), null, false,
                                          MediaStatus.REPEAT_MODE_REPEAT_OFF);
         }
+
         for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
             consumer.onMediaQueueUpdated(queueItems, item, repeatMode, shuffle);
         }
@@ -2447,7 +2448,7 @@ public class VideoCastManager extends BaseCastManager
 
     /**
      * Unregisters an
-     * {@link com.google.android.libraries.cast.companionlibrary.cast.callbacks.com.rbtv.core.cast.CastListener}.
+     * {@link com.rbtv.core.cast.CastListener}.
      */
     public synchronized void removeCastListener(com.rbtv.core.cast.CastListener listener) {
         if (listener != null) {
@@ -2460,7 +2461,7 @@ public class VideoCastManager extends BaseCastManager
      * Adds a new {@link MiniControllerInterface} component. Callers need to provide their own
      * {@link OnMiniControllerChangedListener}.
      *
-     * @see {@link #removeMiniController(MiniControllerInterface)}
+     * @see {@link #removeMiniController(com.rbtv.core.cast.MiniControllerInterface)}
      */
     public void addMiniController(MiniControllerInterface miniController,
                                   OnMiniControllerChangedListener onChangedListener) {
@@ -2700,79 +2701,79 @@ public class VideoCastManager extends BaseCastManager
                           });
     }
 
-    /**
-     * Sets or updates the style of the Text Track.
-     */
-    public void setTextTrackStyle(TextTrackStyle style) {
-        mRemoteMediaPlayer.setTextTrackStyle(mApiClient, style)
-                          .setResultCallback(new ResultCallback<MediaChannelResult>() {
-                              @Override
-                              public void onResult(MediaChannelResult result) {
-                                  if (!result.getStatus().isSuccess()) {
-                                      onFailed(R.string.ccl_failed_to_set_track_style,
-                                               result.getStatus().getStatusCode());
-                                  }
-                              }
-                          });
-        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
-            try {
-                consumer.onTextTrackStyleChanged(style);
-            } catch (Exception e) {
-                LOGE(TAG, "onTextTrackStyleChanged(): Failed to inform " + consumer, e);
-            }
-        }
-    }
-
-    /**
-     * Signals a change in the Text Track style. Clients should not call this directly.
-     */
-    public void onTextTrackStyleChanged(TextTrackStyle style) {
-        LOGD(TAG, "onTextTrackStyleChanged() reached");
-        if (mRemoteMediaPlayer == null || mRemoteMediaPlayer.getMediaInfo() == null) {
-            return;
-        }
-        mRemoteMediaPlayer.setTextTrackStyle(mApiClient, style)
-                          .setResultCallback(new ResultCallback<MediaChannelResult>() {
-                              @Override
-                              public void onResult(MediaChannelResult result) {
-                                  if (!result.getStatus().isSuccess()) {
-                                      onFailed(R.string.ccl_failed_to_set_track_style,
-                                               result.getStatus().getStatusCode());
-                                  }
-                              }
-                          });
-        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
-            try {
-                consumer.onTextTrackStyleChanged(style);
-            } catch (Exception e) {
-                LOGE(TAG, "onTextTrackStyleChanged(): Failed to inform " + consumer, e);
-            }
-        }
-    }
-
-    /**
-     * Signals a change in the Text Track on/off state. Clients should not call this directly.
-     */
-    public void onTextTrackEnabledChanged(boolean isEnabled) {
-        LOGD(TAG, "onTextTrackEnabledChanged() reached");
-        if (!isEnabled) {
-            setActiveTrackIds(new long[]{});
-        }
-
-        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
-            consumer.onTextTrackEnabledChanged(isEnabled);
-        }
-    }
-
-    /**
-     * Signals a change in the Text Track locale. Clients should not call this directly.
-     */
-    public void onTextTrackLocaleChanged(Locale locale) {
-        LOGD(TAG, "onTextTrackLocaleChanged() reached");
-        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
-            consumer.onTextTrackLocaleChanged(locale);
-        }
-    }
+//    /**
+//     * Sets or updates the style of the Text Track.
+//     */
+//    public void setTextTrackStyle(TextTrackStyle style) {
+//        mRemoteMediaPlayer.setTextTrackStyle(mApiClient, style)
+//                          .setResultCallback(new ResultCallback<MediaChannelResult>() {
+//                              @Override
+//                              public void onResult(MediaChannelResult result) {
+//                                  if (!result.getStatus().isSuccess()) {
+//                                      onFailed(R.string.ccl_failed_to_set_track_style,
+//                                               result.getStatus().getStatusCode());
+//                                  }
+//                              }
+//                          });
+//        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
+//            try {
+//                consumer.onTextTrackStyleChanged(style);
+//            } catch (Exception e) {
+//                LOGE(TAG, "onTextTrackStyleChanged(): Failed to inform " + consumer, e);
+//            }
+//        }
+//    }
+//
+//    /**
+//     * Signals a change in the Text Track style. Clients should not call this directly.
+//     */
+//    public void onTextTrackStyleChanged(TextTrackStyle style) {
+//        LOGD(TAG, "onTextTrackStyleChanged() reached");
+//        if (mRemoteMediaPlayer == null || mRemoteMediaPlayer.getMediaInfo() == null) {
+//            return;
+//        }
+//        mRemoteMediaPlayer.setTextTrackStyle(mApiClient, style)
+//                          .setResultCallback(new ResultCallback<MediaChannelResult>() {
+//                              @Override
+//                              public void onResult(MediaChannelResult result) {
+//                                  if (!result.getStatus().isSuccess()) {
+//                                      onFailed(R.string.ccl_failed_to_set_track_style,
+//                                               result.getStatus().getStatusCode());
+//                                  }
+//                              }
+//                          });
+//        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
+//            try {
+//                consumer.onTextTrackStyleChanged(style);
+//            } catch (Exception e) {
+//                LOGE(TAG, "onTextTrackStyleChanged(): Failed to inform " + consumer, e);
+//            }
+//        }
+//    }
+//
+//    /**
+//     * Signals a change in the Text Track on/off state. Clients should not call this directly.
+//     */
+//    public void onTextTrackEnabledChanged(boolean isEnabled) {
+//        LOGD(TAG, "onTextTrackEnabledChanged() reached");
+//        if (!isEnabled) {
+//            setActiveTrackIds(new long[]{});
+//        }
+//
+//        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
+//            consumer.onTextTrackEnabledChanged(isEnabled);
+//        }
+//    }
+//
+//    /**
+//     * Signals a change in the Text Track locale. Clients should not call this directly.
+//     */
+//    public void onTextTrackLocaleChanged(Locale locale) {
+//        LOGD(TAG, "onTextTrackLocaleChanged() reached");
+//        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
+//            consumer.onTextTrackLocaleChanged(locale);
+//        }
+//    }
 
     public final MediaQueue getMediaQueue() {
         return mMediaQueue;

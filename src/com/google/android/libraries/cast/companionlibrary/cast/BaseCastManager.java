@@ -138,7 +138,7 @@ public abstract class BaseCastManager
      * to be implemented by each subclass independently.
      *
      * @param device The Cast receiver device returned from the MediaRouteProvider. Should not be
-     * {@code null}.
+     *               {@code null}.
      */
     protected abstract Cast.CastOptions.Builder getCastOptionBuilder(CastDevice device);
 
@@ -153,7 +153,7 @@ public abstract class BaseCastManager
      * application. This is called when the application is successfully launched.
      */
     protected abstract void onApplicationConnected(ApplicationMetadata applicationMetadata,
-            String applicationStatus, String sessionId, boolean wasLaunched);
+                                                   String applicationStatus, String sessionId, boolean wasLaunched);
 
     /**
      * Called when the launch of application has failed. Subclasses need to handle this by doing
@@ -178,7 +178,7 @@ public abstract class BaseCastManager
     protected BaseCastManager(Context context, String applicationId) {
         sCclVersion = context.getString(R.string.ccl_version);
         LOGD(TAG, "BaseCastManager is instantiated\nVersion: " + sCclVersion
-                + "\nApplication ID: " + applicationId);
+                  + "\nApplication ID: " + applicationId);
         mContext = context.getApplicationContext();
         mPreferenceAccessor = new PreferenceAccessor(mContext);
         mUiVisibilityHandler = new Handler(new UpdateUiVisibilityHandlerCallback());
@@ -191,7 +191,7 @@ public abstract class BaseCastManager
 
         mMediaRouterCallback = new CastMediaRouterCallback(this);
         mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback,
-                MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
+                                 MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
     }
 
     /**
@@ -199,13 +199,17 @@ public abstract class BaseCastManager
      * the fun starts!
      */
     public final void onDeviceSelected(CastDevice device) {
+        String deviceName;
         if (device == null) {
             disconnectDevice(mDestroyOnDisconnect, true, false);
+            deviceName = "null";
         } else {
             setDevice(device);
+            deviceName = device.getFriendlyName();
         }
+
         for (CastListener consumer : mBaseCastConsumers) {
-            consumer.onDeviceSelected(device);
+            consumer.onDeviceSelected(deviceName);
         }
     }
 
@@ -215,7 +219,7 @@ public abstract class BaseCastManager
      * signal the change in presence of cast devices on network.
      *
      * @param castDevicePresent Indicates where a cast device is present, <code>true</code>, or not,
-     * <code>false</code>.
+     *                          <code>false</code>.
      */
     public final void onCastAvailabilityChanged(boolean castDevicePresent) {
         for (CastListener consumer : mBaseCastConsumers) {
@@ -226,15 +230,15 @@ public abstract class BaseCastManager
     /**
      * Disconnects from the connected device.
      *
-     * @param stopAppOnExit If {@code true}, the application running on the cast device will be
-     * stopped when disconnected.
+     * @param stopAppOnExit                If {@code true}, the application running on the cast device will be
+     *                                     stopped when disconnected.
      * @param clearPersistedConnectionData If {@code true}, the persisted connection information
-     * will be cleared as part of this call.
-     * @param setDefaultRoute If {@code true}, after disconnection, the selected route will be set
-     * to the Default Route.
+     *                                     will be cleared as part of this call.
+     * @param setDefaultRoute              If {@code true}, after disconnection, the selected route will be set
+     *                                     to the Default Route.
      */
     public final void disconnectDevice(boolean stopAppOnExit, boolean clearPersistedConnectionData,
-            boolean setDefaultRoute) {
+                                       boolean setDefaultRoute) {
         LOGD(TAG, "disconnectDevice(" + clearPersistedConnectionData + "," + setDefaultRoute + ")");
         if (mSelectedCastDevice == null) {
             return;
@@ -308,8 +312,9 @@ public abstract class BaseCastManager
      * cast concept and the usage of the cast button.
      */
     public final void onCastDeviceDetected(RouteInfo info) {
+        String infoName = info != null ? info.getName() : "null";
         for (CastListener consumer : mBaseCastConsumers) {
-            consumer.onCastDeviceDetected(info);
+            consumer.onCastDeviceDetected(infoName);
         }
     }
 
@@ -319,7 +324,7 @@ public abstract class BaseCastManager
      * {@link android.app.Activity} inherits (directly or indirectly) from
      * {@link android.support.v7.app.ActionBarActivity}.
      *
-     * @param menu Menu reference
+     * @param menu           Menu reference
      * @param menuResourceId The resource id of the cast button in the xml menu descriptor file
      */
     public final MenuItem addMediaRouterButton(Menu menu, int menuResourceId) {
@@ -344,13 +349,13 @@ public abstract class BaseCastManager
      * <li>User is in charge of controlling the visibility of this button. However, this library
      * makes it easier to do so: use the callback <code>onCastAvailabilityChanged(boolean)</code>
      * to change the visibility of the button in your client. For example, extend
-     * {@link com.google.android.libraries.cast.companionlibrary.cast.callbacks.CastListenerImpl}
+     * {@link com.rbtv.core.cast.CastListenerImpl}
      * and override that method:
      *
      * <pre>
-       public void onCastAvailabilityChanged(boolean castPresent) {
-           mMediaRouteButton.setVisibility(castPresent ? View.VISIBLE : View.INVISIBLE);
-       }
+     * public void onCastAvailabilityChanged(boolean castPresent) {
+     * mMediaRouteButton.setVisibility(castPresent ? View.VISIBLE : View.INVISIBLE);
+     * }
      * </pre>
      * </li>
      * </ul>
@@ -395,7 +400,7 @@ public abstract class BaseCastManager
                 mUiVisible = false;
                 mUiVisibilityHandler.removeMessages(WHAT_UI_VISIBLE);
                 mUiVisibilityHandler.sendEmptyMessageDelayed(WHAT_UI_HIDDEN,
-                        UI_VISIBILITY_DELAY_MS);
+                                                             UI_VISIBILITY_DELAY_MS);
             }
         } else {
             LOGD(TAG, "UI is visible");
@@ -430,7 +435,7 @@ public abstract class BaseCastManager
      */
     public final void startCastDiscovery() {
         mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback,
-                MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
+                                 MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
     }
 
     /**
@@ -558,7 +563,7 @@ public abstract class BaseCastManager
      * @throws TransientNetworkDisconnectionException
      */
     public final void setDeviceVolume(double volume) throws CastException,
-            TransientNetworkDisconnectionException, NoConnectionException {
+                                                            TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         try {
             Cast.CastApi.setVolume(mApiClient, volume);
@@ -576,7 +581,7 @@ public abstract class BaseCastManager
      * @throws TransientNetworkDisconnectionException
      */
     public final double getDeviceVolume() throws TransientNetworkDisconnectionException,
-            NoConnectionException {
+                                                 NoConnectionException {
         checkConnectivity();
         try {
             return Cast.CastApi.getVolume(mApiClient);
@@ -593,7 +598,7 @@ public abstract class BaseCastManager
      * @throws TransientNetworkDisconnectionException
      */
     public final void adjustDeviceVolume(double delta) throws CastException,
-            TransientNetworkDisconnectionException, NoConnectionException {
+                                                              TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         double vol = getDeviceVolume();
         if (vol >= 0) {
@@ -609,7 +614,7 @@ public abstract class BaseCastManager
      * @throws TransientNetworkDisconnectionException
      */
     public final boolean isDeviceMute() throws TransientNetworkDisconnectionException,
-            NoConnectionException {
+                                               NoConnectionException {
         checkConnectivity();
         try {
             return Cast.CastApi.isMute(mApiClient);
@@ -626,7 +631,7 @@ public abstract class BaseCastManager
      * @throws TransientNetworkDisconnectionException
      */
     public final void setDeviceMute(boolean mute) throws CastException,
-            TransientNetworkDisconnectionException, NoConnectionException {
+                                                         TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         try {
             Cast.CastApi.setMute(mApiClient, mute);
@@ -687,7 +692,7 @@ public abstract class BaseCastManager
             return false;
         }
         LOGD(TAG, "Found session info in the preferences, so proceed with an "
-                + "attempt to reconnect if possible");
+                  + "attempt to reconnect if possible");
         return true;
     }
 
@@ -698,7 +703,7 @@ public abstract class BaseCastManager
         String sessionId = mPreferenceAccessor.getStringFromPreference(PREFS_KEY_SESSION_ID);
         String routeId = mPreferenceAccessor.getStringFromPreference(PREFS_KEY_ROUTE_ID);
         LOGD(TAG, "reconnectSessionIfPossible() Retrieved from preferences: " + "sessionId="
-                + sessionId + ", routeId=" + routeId);
+                  + sessionId + ", routeId=" + routeId);
         if (sessionId == null || routeId == null) {
             return;
         }
@@ -758,8 +763,8 @@ public abstract class BaseCastManager
      * This attempt will go on for <code>timeoutInSeconds</code> seconds.
      *
      * @param timeoutInSeconds the length of time, in seconds, to attempt reconnection before giving
-     * up
-     * @param ssidName The name of Wifi SSID
+     *                         up
+     * @param ssidName         The name of Wifi SSID
      */
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     public void reconnectSessionIfPossible(final int timeoutInSeconds, String ssidName) {
@@ -891,7 +896,7 @@ public abstract class BaseCastManager
      * time.
      */
     protected void onDisconnected(boolean stopAppOnExit, boolean clearPersistedConnectionData,
-            boolean setDefaultRoute) {
+                                  boolean setDefaultRoute) {
         LOGD(TAG, "onDisconnected() reached");
         mDeviceName = null;
         for (CastListener consumer : mBaseCastConsumers) {
@@ -907,16 +912,16 @@ public abstract class BaseCastManager
     @Override
     public void onConnectionFailed(ConnectionResult result) {
         LOGD(TAG, "onConnectionFailed() reached, error code: " + result.getErrorCode()
-                + ", reason: " + result.toString());
+                  + ", reason: " + result.toString());
         disconnectDevice(mDestroyOnDisconnect, false /* clearPersistentConnectionData */,
-                false /* setDefaultRoute */);
+                         false /* setDefaultRoute */);
         mConnectionSuspended = false;
         if (mMediaRouter != null) {
             mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
         }
 
         for (CastListener consumer : mBaseCastConsumers) {
-            consumer.onConnectionFailed(result);
+            consumer.onConnectionFailed(result.getErrorCode(), result.getErrorMessage());
         }
     }
 
@@ -955,8 +960,8 @@ public abstract class BaseCastManager
                             if (result.getStatus().isSuccess()) {
                                 LOGD(TAG, "joinApplication() -> success");
                                 onApplicationConnected(result.getApplicationMetadata(),
-                                        result.getApplicationStatus(), result.getSessionId(),
-                                        result.getWasLaunched());
+                                                       result.getApplicationStatus(), result.getSessionId(),
+                                                       result.getWasLaunched());
                             } else {
                                 LOGD(TAG, "joinApplication() -> failure");
                                 clearPersistedConnectionInfo(CLEAR_SESSION | CLEAR_MEDIA_END);
@@ -964,7 +969,7 @@ public abstract class BaseCastManager
                             }
                         }
                     }
-            );
+                                                                                                 );
         } else {
             LOGD(TAG, "Launching app");
             Cast.CastApi.launchApplication(mApiClient, mApplicationId).setResultCallback(
@@ -975,15 +980,15 @@ public abstract class BaseCastManager
                             if (result.getStatus().isSuccess()) {
                                 LOGD(TAG, "launchApplication() -> success result");
                                 onApplicationConnected(result.getApplicationMetadata(),
-                                        result.getApplicationStatus(), result.getSessionId(),
-                                        result.getWasLaunched());
+                                                       result.getApplicationStatus(), result.getSessionId(),
+                                                       result.getWasLaunched());
                             } else {
                                 LOGD(TAG, "launchApplication() -> failure result");
                                 onApplicationConnectionFailed(result.getStatus().getStatusCode());
                             }
                         }
                     }
-            );
+                                                                                        );
         }
     }
 
@@ -1003,11 +1008,11 @@ public abstract class BaseCastManager
                     public void onResult(Status result) {
                         if (!result.isSuccess()) {
                             LOGD(TAG, "stopApplication -> onResult: stopping "
-                                    + "application failed");
+                                      + "application failed");
                             onApplicationStopFailed(result.getStatusCode());
                         } else {
                             LOGD(TAG, "stopApplication -> onResult Stopped application "
-                                    + "successfully");
+                                      + "successfully");
                         }
                     }
                 });
@@ -1034,7 +1039,7 @@ public abstract class BaseCastManager
         if (listener != null) {
             if (mBaseCastConsumers.remove(listener)) {
                 LOGD(TAG, "Successfully removed the existing CastListener listener "
-                        + listener);
+                          + listener);
             }
         }
     }
@@ -1043,10 +1048,10 @@ public abstract class BaseCastManager
      * A simple method that throws an exception of there is no connectivity to the cast device.
      *
      * @throws TransientNetworkDisconnectionException If framework is still trying to recover
-     * @throws NoConnectionException If no connectivity to the device exists
+     * @throws NoConnectionException                  If no connectivity to the device exists
      */
     public final void checkConnectivity() throws TransientNetworkDisconnectionException,
-            NoConnectionException {
+                                                 NoConnectionException {
         if (!isConnected()) {
             if (mConnectionSuspended) {
                 throw new TransientNetworkDisconnectionException();
@@ -1079,11 +1084,11 @@ public abstract class BaseCastManager
      * Clears the persisted connection information. Bitwise OR combination of the following options
      * should be passed as the argument:
      * <ul>
-     *     <li>CLEAR_SESSION</li>
-     *     <li>CLEAR_ROUTE</li>
-     *     <li>CLEAR_WIFI</li>
-     *     <li>CLEAR_MEDIA_END</li>
-     *     <li>CLEAR_ALL</li>
+     * <li>CLEAR_SESSION</li>
+     * <li>CLEAR_ROUTE</li>
+     * <li>CLEAR_WIFI</li>
+     * <li>CLEAR_MEDIA_END</li>
+     * <li>CLEAR_ALL</li>
      * </ul>
      * Clients can form an or
      */

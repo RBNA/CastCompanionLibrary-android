@@ -29,7 +29,6 @@ import android.os.IBinder;
 import android.support.v4.app.TaskStackBuilder;
 import android.support.v7.app.NotificationCompat;
 import android.util.Log;
-import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaMetadata;
 import com.google.android.gms.cast.MediaStatus;
@@ -93,7 +92,7 @@ public class VideoCastNotificationService extends Service {
             }
 
             @Override
-            public void onApplicationConnected(ApplicationMetadata appMetadata, String sessionId, boolean wasLaunched) {
+            public void onApplicationConnected(String sessionId, boolean wasLaunched) {
                 // Make sure to update notification when we connect if needed
                 VideoCastNotificationService.this.onRemoteMediaPlayerStatusUpdated(mCastManager.getPlaybackStatus());
             }
