@@ -51,12 +51,14 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
+import com.google.android.gms.common.images.WebImage;
 import com.google.android.libraries.cast.companionlibrary.R;
 import com.google.android.libraries.cast.companionlibrary.notification.VideoCastNotificationService;
 import com.google.android.libraries.cast.companionlibrary.remotecontrol.VideoIntentReceiver;
 import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
 import com.google.android.libraries.cast.companionlibrary.utils.Utils;
 import com.rbtv.core.cast.CastException;
+import com.rbtv.core.cast.CastItem;
 import com.rbtv.core.cast.CastListenerImpl;
 import com.rbtv.core.cast.MiniControllerInterface;
 import com.rbtv.core.cast.NoConnectionException;
@@ -64,9 +66,14 @@ import com.rbtv.core.cast.OnFailedListener;
 import com.rbtv.core.cast.OnMiniControllerChangedListener;
 import com.rbtv.core.cast.TransientNetworkDisconnectionException;
 import com.rbtv.core.model.content.QueueItem;
+import com.rbtv.core.util.Logger;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -119,10 +126,17 @@ import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.
 public class VideoCastManager extends BaseCastManager
         implements OnMiniControllerChangedListener, OnFailedListener {
 
+    private static final Logger LOG = Logger.getLogger(VideoCastManager.class);
     private static final String TAG = LogUtils.makeLogTag(VideoCastManager.class);
 
-    private static final String CUSTOM_ITEM_QUEUE_TYPE = "type";
-    private static final String CUSTOM_ITEM_QUEUE_TYPE_LINEAR = "linear";
+    public static final String CUSTOM_ITEM_QUEUE_TYPE = "type";
+    public static final String CUSTOM_ITEM_QUEUE_TYPE_LINEAR = "linear";
+    public static final String CUSTOM_ITEM_QUEUE_TYPE_MANUAL = "queue";
+    public static final String CUSTOM_ITEM_QUEUE_TYPE_PLAYLIST = "playlist";
+
+    public static final String CUSTOM_ITEM_CONTENT_URL = "contentUrl";
+    public static final String CUSTOM_ITEM_PLAYLIST_URL = "playlist";
+    public static final String CUSTOM_ITEM_CONTINUOUS_PLAY = "continuous";
 
     public static final String EXTRA_HAS_AUTH = "hasAuth";
     public static final String EXTRA_MEDIA = "media";
@@ -277,13 +291,14 @@ public class VideoCastManager extends BaseCastManager
         if (mRemoteMediaPlayer.getStreamDuration() > 0 || isRemoteStreamLive()) {
             MediaInfo mediaInfo = getRemoteMediaInformation();
             MediaMetadata mm = mediaInfo.getMetadata();
-            controller.setMediaInfo(mediaInfo);
+            CastItem castItem = createCastItemFromMediaInfo(mediaInfo);
+            controller.setCastItem(castItem);
             controller.setPlaybackStatus(mState, mIdleReason);
             updateProgress();
             if (miniControllerUpdater != null) {
-                miniControllerUpdater.updateMiniController(controller, mediaInfo);
+                miniControllerUpdater.updateMiniController(controller, castItem);
             } else {
-                controller.setMediaInfo(mediaInfo);
+                controller.setCastItem(castItem);
                 controller.setSubtitle(mContext.getResources().getString(R.string.ccl_casting_to_device,
                                                                          mDeviceName));
                 controller.setTitle(mm.getString(MediaMetadata.KEY_TITLE));
@@ -292,6 +307,113 @@ public class VideoCastManager extends BaseCastManager
         }
     }
 
+    public CastItem createCastItemFromMediaInfo(MediaInfo mediaInfo) {
+        String videoId = mediaInfo.getContentId();
+        String contentUrl = null;
+        try {
+            contentUrl = mediaInfo.getCustomData().getString(CUSTOM_ITEM_CONTENT_URL);
+        } catch (JSONException e) {
+            LOG.error("No Content found in Custom Data");
+        } catch (NullPointerException e) {
+            LOG.error("No CustomData in MediaInfo");
+        }
+
+        String playlistUrl = null;
+        try {
+            playlistUrl = mediaInfo.getCustomData().getString(CUSTOM_ITEM_PLAYLIST_URL);
+        } catch (JSONException e) {
+            LOG.error("No Playlist found in Custom Data");
+        } catch (NullPointerException e) {
+            LOG.error("No CustomData in MediaInfo");
+        }
+
+        boolean isLinearStream = mediaInfo.getCustomData() != null && mediaInfo.getCustomData().optString(CUSTOM_ITEM_QUEUE_TYPE, "").equals(CUSTOM_ITEM_QUEUE_TYPE_LINEAR);
+        boolean isLive = mediaInfo.getStreamType() == MediaInfo.STREAM_TYPE_LIVE;
+
+        String title = mediaInfo.getMetadata().getString(MediaMetadata.KEY_TITLE);
+        String subtitle = mediaInfo.getMetadata().getString(MediaMetadata.KEY_SUBTITLE);
+        String landscapeImageUrl = "";
+        String squareImageUrl = "";
+        List<WebImage> images = mediaInfo.getMetadata().getImages();
+        if (!images.isEmpty()) {
+            try {
+                // remove encoded braces
+                landscapeImageUrl = URLDecoder.decode(mediaInfo.getMetadata().getImages().get(0).getUrl().toString(), "UTF-8");
+            } catch (Exception e) {
+                LOG.error("Error decoding imageUrlString: ", e);
+            }
+
+            if (images.size() > 1) {
+                try {
+                    // remove encoded braces
+                    squareImageUrl = URLDecoder.decode(mediaInfo.getMetadata().getImages().get(1).getUrl().toString(), "UTF-8");
+                } catch (Exception e) {
+                    LOG.error("Error decoding imageUrlString: ", e);
+                }
+            }
+        }
+
+        return new CastItem(videoId, contentUrl, playlistUrl, isLinearStream, isLive, landscapeImageUrl, squareImageUrl, title, subtitle);
+    }
+
+    public QueueItem createQueueItemFromMediaQueueItem(MediaQueueItem queueItem) {
+        MediaInfo mediaInfo = queueItem.getMedia();
+        MediaMetadata mediaMetadata = mediaInfo.getMetadata();
+        String videoId = mediaInfo.getContentId();
+        String title = mediaMetadata.getString(MediaMetadata.KEY_TITLE);
+        String subtitle = mediaMetadata.getString(MediaMetadata.KEY_SUBTITLE);
+        boolean isManualQueueItem = isManualItem(mediaInfo);
+        String imageUrlString = "";
+        if (!mediaMetadata.getImages().isEmpty()) {
+            try {
+                // remove encoded braces
+                imageUrlString = URLDecoder.decode(mediaMetadata.getImages().get(0).getUrl().toString(), "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                LOG.error("No Images found in MediaInfo");
+            }
+        }
+        boolean isLive = mediaInfo.getStreamType() == MediaInfo.STREAM_TYPE_LIVE;
+        boolean isLinear = VideoCastManager.isMediaInfoLinearStream(mediaInfo);
+        String resourceUrl = getContentUrlFromMediaInfo(mediaInfo);
+        String contextualResourceUrl = getPlaylistFromMediaInfo(mediaInfo);
+        return new QueueItem(videoId, resourceUrl, contextualResourceUrl, title, subtitle, imageUrlString, queueItem.getItemId(), isLive, (int) mediaInfo.getStreamDuration(), isManualQueueItem, isLinear);
+    }
+
+    private boolean isManualItem(MediaInfo mediaInfo) {
+        try {
+            return mediaInfo.getCustomData().getString(CUSTOM_ITEM_QUEUE_TYPE).equals(CUSTOM_ITEM_QUEUE_TYPE_MANUAL);
+        } catch (JSONException e) {
+            LOG.error("No Queue Type found in Custom Data");
+        } catch (NullPointerException e) {
+            LOG.error("No CustomData in MediaInfo");
+        }
+        return false;
+    }
+
+    private String getContentUrlFromMediaInfo(MediaInfo mediaInfo) {
+        try {
+            return mediaInfo.getCustomData().getString(CUSTOM_ITEM_CONTENT_URL);
+        } catch (JSONException e) {
+            LOG.error("No Content found in Custom Data");
+        } catch (NullPointerException e) {
+            LOG.error("No CustomData in MediaInfo");
+        }
+
+        return null;
+    }
+
+    private String getPlaylistFromMediaInfo(MediaInfo mediaInfo) {
+        try {
+            return mediaInfo.getCustomData().getString(CUSTOM_ITEM_PLAYLIST_URL);
+        } catch (JSONException e) {
+            LOG.error("No Playlist found in Custom Data");
+        } catch (NullPointerException e) {
+            LOG.error("No CustomData in MediaInfo");
+        }
+
+        return null;
+    }
+    
     /*
      * Updates the information and state of all MiniControllers
      */
@@ -344,19 +466,19 @@ public class VideoCastManager extends BaseCastManager
         context.startActivity(intent);
     }
 
-    @Override
-    public void onUpcomingPlayClicked(View view, MediaQueueItem upcomingItem) {
-        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
-            consumer.onUpcomingPlayClicked(view, upcomingItem);
-        }
-    }
-
-    @Override
-    public void onUpcomingStopClicked(View view, MediaQueueItem upcomingItem) {
-        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
-            consumer.onUpcomingStopClicked(view, upcomingItem);
-        }
-    }
+//    @Override
+//    public void onUpcomingPlayClicked(View view, MediaQueueItem upcomingItem) {
+//        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
+//            consumer.onUpcomingPlayClicked(view, upcomingItem);
+//        }
+//    }
+//
+//    @Override
+//    public void onUpcomingStopClicked(View view, MediaQueueItem upcomingItem) {
+//        for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
+//            consumer.onUpcomingStopClicked(view, upcomingItem);
+//        }
+//    }
 
     /**
      * Updates the visibility of the mini controllers. In most cases, clients do not need to use
@@ -374,12 +496,12 @@ public class VideoCastManager extends BaseCastManager
     }
 
     public void updateMiniControllersVisibilityForUpcoming(MediaQueueItem item) {
-        synchronized (mMiniControllers) {
-            for (MiniControllerInterface controller : mMiniControllers) {
-                controller.setUpcomingItem(item);
-                controller.setUpcomingVisibility(item != null);
-            }
-        }
+//        synchronized (mMiniControllers) {
+//            for (MiniControllerInterface controller : mMiniControllers) {
+//                controller.setUpcomingItem(item);
+//                controller.setUpcomingVisibility(item != null);
+//            }
+//        }
     }
 
     /**
@@ -1017,7 +1139,7 @@ public class VideoCastManager extends BaseCastManager
         }
 
         for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
-            consumer.onMediaLoadStarted(media);
+            consumer.onMediaLoadStarted(createCastItemFromMediaInfo(media));
         }
 
         mRemoteMediaPlayer.load(mApiClient, media, autoPlay, position, activeTracks, customData)
@@ -2153,8 +2275,9 @@ public class VideoCastManager extends BaseCastManager
         updateMiniControllersVisibilityForUpcoming(item);
         LOGD(TAG, "onRemoteMediaPreloadStatusUpdated() " + item);
         for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
-            // TODO need this?
-            //consumer.onRemoteMediaPreloadStatusUpdated(item);
+            if (item != null && item.getMedia() != null) {
+                consumer.onRemoteMediaPreloadStatusUpdated(item.getMedia().getContentId());
+            }
         }
     }
 
@@ -2165,21 +2288,33 @@ public class VideoCastManager extends BaseCastManager
     /*
     * This is called by onQueueStatusUpdated() of RemoteMediaPlayer
     */
-    private void onQueueUpdated(List<MediaQueueItem> queueItems, MediaQueueItem item, int repeatMode,
+    private void onQueueUpdated(List<MediaQueueItem> mediaQueueItems, MediaQueueItem mediaQueueItem, int repeatMode,
                                 boolean shuffle) {
         LOGD(TAG, "onQueueUpdated() reached");
         LOGD(TAG, String.format("Queue Items size: %d, Item: %s, Repeat Mode: %d, Shuffle: %s",
-                                queueItems == null ? 0 : queueItems.size(), item, repeatMode, shuffle));
-        if (queueItems != null) {
-            mMediaQueue = new MediaQueue(new CopyOnWriteArrayList<>(queueItems), item, shuffle,
+                                mediaQueueItems == null ? 0 : mediaQueueItems.size(), mediaQueueItem, repeatMode, shuffle));
+        if (mediaQueueItems != null) {
+            mMediaQueue = new MediaQueue(new CopyOnWriteArrayList<>(mediaQueueItems), mediaQueueItem, shuffle,
                                          repeatMode);
         } else {
             mMediaQueue = new MediaQueue(new CopyOnWriteArrayList<MediaQueueItem>(), null, false,
                                          MediaStatus.REPEAT_MODE_REPEAT_OFF);
         }
 
+        List<QueueItem> queueItems = new ArrayList<>();
+        if (mediaQueueItems != null) {
+            for (MediaQueueItem item : mediaQueueItems) {
+                queueItems.add(createQueueItemFromMediaQueueItem(item));
+            }
+        }
+
+        QueueItem queueItem = null;
+        if (mediaQueueItem != null) {
+            queueItem = createQueueItemFromMediaQueueItem(mediaQueueItem);
+        }
+
         for (com.rbtv.core.cast.CastListener consumer : mVideoConsumers) {
-            consumer.onMediaQueueUpdated(queueItems, item, repeatMode, shuffle);
+            consumer.onMediaQueueUpdated(queueItems, queueItem, repeatMode, shuffle);
         }
     }
 
@@ -2589,7 +2724,6 @@ public class VideoCastManager extends BaseCastManager
      * Returns the class for the full screen activity that can control the remote media playback.
      * This activity will also be invoked from the notification shade. If {@code null} is returned,
      * this library will use a default implementation.
-     *
      */
     public Class<?> getTargetActivity() {
         return mTargetActivity;
@@ -2866,7 +3000,7 @@ public class VideoCastManager extends BaseCastManager
     }
 
     public interface MiniControllerUpdater {
-        void updateMiniController(MiniControllerInterface controller, MediaInfo mediaInfo);
+        void updateMiniController(MiniControllerInterface controller, CastItem castItem);
     }
 
     public void setMiniControllerUpdater(MiniControllerUpdater updater) {
