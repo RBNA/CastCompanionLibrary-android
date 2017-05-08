@@ -14,6 +14,28 @@
  * limitations under the License.
  */
 
+apply plugin: 'com.android.library'
+
+android {
+    publishNonDefault true
+
+    compileSdkVersion compile_sdk_version
+    buildToolsVersion build_tools_version
+
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 25
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            res.srcDirs = ['res']
+        }
+    }
+}
+
 buildscript {
     repositories {
         jcenter()
@@ -28,33 +50,6 @@ repositories {
     jcenter()
     flatDir {
         dirs 'libs'
-    }
-}
-
-apply plugin: 'com.android.library'
-
-android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.1"
-    publishNonDefault true
-
-    defaultConfig {
-        minSdkVersion 10
-        targetSdkVersion 22
-    }
-
-    sourceSets {
-        main {
-            manifest.srcFile 'AndroidManifest.xml'
-            java.srcDirs = ['src']
-            res.srcDirs = ['res']
-        }
-    }
-
-    buildTypes {
-        debug {
-
-        }
     }
 }
 
