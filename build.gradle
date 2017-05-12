@@ -55,7 +55,7 @@ repositories {
 
 dependencies {
     compile project(':rbtv-core')
-    compile "com.android.support:appcompat-v7:25.2.0"
-    compile "com.android.support:mediarouter-v7:25.2.0"
+    compile "com.android.support:appcompat-v7:$support_version"
+    compile "com.android.support:mediarouter-v7:$support_version"
     compile "com.google.android.gms:play-services-cast:$play_services_version"
 }
