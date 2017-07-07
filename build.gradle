@@ -23,8 +23,8 @@ android {
     buildToolsVersion build_tools_version
 
     defaultConfig {
-        minSdkVersion 16
-        targetSdkVersion 25
+        minSdkVersion app_min_sdk_version
+        targetSdkVersion app_target_sdk_version
     }
 
     sourceSets {
