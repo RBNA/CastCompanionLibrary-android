@@ -135,7 +135,7 @@ public class VideoCastManager extends BaseCastManager
     public static final String CUSTOM_ITEM_QUEUE_TYPE_PLAYLIST = "playlist";
 
     public static final String CUSTOM_ITEM_CONTENT_URL = "contentUrl";
-    public static final String CUSTOM_ITEM_PLAYLIST_URL = "playlist";
+    public static final String CUSTOM_ITEM_PLAYLIST_ID = "playlist";
     public static final String CUSTOM_ITEM_CONTINUOUS_PLAY = "continuous";
 
     public static final String EXTRA_HAS_AUTH = "hasAuth";
@@ -302,25 +302,17 @@ public class VideoCastManager extends BaseCastManager
                 controller.setSubtitle(mContext.getResources().getString(R.string.ccl_casting_to_device,
                                                                          mDeviceName));
                 controller.setTitle(mm.getString(MediaMetadata.KEY_TITLE));
-                controller.setIcon(Utils.getImageUri(mediaInfo, 0));
+                controller.setIcon(mediaInfo.getContentId());
             }
         }
     }
 
     public CastItem createCastItemFromMediaInfo(MediaInfo mediaInfo) {
         String videoId = mediaInfo.getContentId();
-        String contentUrl = null;
-        try {
-            contentUrl = mediaInfo.getCustomData().getString(CUSTOM_ITEM_CONTENT_URL);
-        } catch (JSONException e) {
-            LOG.error("No Content found in Custom Data");
-        } catch (NullPointerException e) {
-            LOG.error("No CustomData in MediaInfo");
-        }
 
-        String playlistUrl = null;
+        String playlistId = null;
         try {
-            playlistUrl = mediaInfo.getCustomData().getString(CUSTOM_ITEM_PLAYLIST_URL);
+            playlistId = mediaInfo.getCustomData().getString(CUSTOM_ITEM_PLAYLIST_ID);
         } catch (JSONException e) {
             LOG.error("No Playlist found in Custom Data");
         } catch (NullPointerException e) {
@@ -353,7 +345,7 @@ public class VideoCastManager extends BaseCastManager
             }
         }
 
-        return new CastItem(videoId, contentUrl, playlistUrl, isLinearStream, isLive, landscapeImageUrl, squareImageUrl, title, subtitle);
+        return new CastItem(videoId, playlistId, isLinearStream, isLive, landscapeImageUrl, squareImageUrl, title, subtitle);
     }
 
     public QueueItem createQueueItemFromMediaQueueItem(MediaQueueItem queueItem) {
@@ -404,7 +396,7 @@ public class VideoCastManager extends BaseCastManager
 
     private String getPlaylistFromMediaInfo(MediaInfo mediaInfo) {
         try {
-            return mediaInfo.getCustomData().getString(CUSTOM_ITEM_PLAYLIST_URL);
+            return mediaInfo.getCustomData().getString(CUSTOM_ITEM_PLAYLIST_ID);
         } catch (JSONException e) {
             LOG.error("No Playlist found in Custom Data");
         } catch (NullPointerException e) {

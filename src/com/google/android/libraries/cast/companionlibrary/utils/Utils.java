@@ -106,30 +106,6 @@ public final class Utils {
         Toast.makeText(context, context.getString(resourceId), Toast.LENGTH_LONG).show();
     }
 
-    /**
-     * Returns the URL of an image for the {@link MediaInfo} at the given index. Index should be a
-     * number between 0 and {@code n-1} where {@code n} is the number of images for that given item.
-     */
-    public static String getImageUrl(MediaInfo info, int index) {
-        Uri uri = getImageUri(info, index);
-        if (uri != null) {
-            return uri.toString();
-        }
-        return null;
-    }
-
-    /**
-     * Returns the {@code Uri} address of an image for the {@link MediaInfo} at the given
-     * index. Index should be a number between 0 and {@code n - 1} where {@code n} is the
-     * number of images for that given item.
-     */
-    public static Uri getImageUri(MediaInfo info, int index) {
-        MediaMetadata mediaMetadata = info.getMetadata();
-        if (mediaMetadata != null && mediaMetadata.getImages().size() > index) {
-            return mediaMetadata.getImages().get(index).getUrl();
-        }
-        return null;
-    }
 
     /**
      * A utility method to validate that the appropriate version of the Google Play Services is
