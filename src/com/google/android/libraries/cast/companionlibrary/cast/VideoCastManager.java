@@ -51,7 +51,6 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
-import com.google.android.gms.common.images.WebImage;
 import com.google.android.libraries.cast.companionlibrary.R;
 import com.google.android.libraries.cast.companionlibrary.notification.VideoCastNotificationService;
 import com.google.android.libraries.cast.companionlibrary.remotecontrol.VideoIntentReceiver;
@@ -324,28 +323,8 @@ public class VideoCastManager extends BaseCastManager
 
         String title = mediaInfo.getMetadata().getString(MediaMetadata.KEY_TITLE);
         String subtitle = mediaInfo.getMetadata().getString(MediaMetadata.KEY_SUBTITLE);
-        String landscapeImageUrl = "";
-        String squareImageUrl = "";
-        List<WebImage> images = mediaInfo.getMetadata().getImages();
-        if (!images.isEmpty()) {
-            try {
-                // remove encoded braces
-                landscapeImageUrl = URLDecoder.decode(mediaInfo.getMetadata().getImages().get(0).getUrl().toString(), "UTF-8");
-            } catch (Exception e) {
-                LOG.error("Error decoding imageUrlString: ", e);
-            }
 
-            if (images.size() > 1) {
-                try {
-                    // remove encoded braces
-                    squareImageUrl = URLDecoder.decode(mediaInfo.getMetadata().getImages().get(1).getUrl().toString(), "UTF-8");
-                } catch (Exception e) {
-                    LOG.error("Error decoding imageUrlString: ", e);
-                }
-            }
-        }
-
-        return new CastItem(videoId, playlistId, isLinearStream, isLive, landscapeImageUrl, squareImageUrl, title, subtitle);
+        return new CastItem(videoId, playlistId, isLinearStream, isLive, title, subtitle);
     }
 
     public QueueItem createQueueItemFromMediaQueueItem(MediaQueueItem queueItem) {
@@ -355,20 +334,12 @@ public class VideoCastManager extends BaseCastManager
         String title = mediaMetadata.getString(MediaMetadata.KEY_TITLE);
         String subtitle = mediaMetadata.getString(MediaMetadata.KEY_SUBTITLE);
         boolean isManualQueueItem = isManualItem(mediaInfo);
-        String imageUrlString = "";
-        if (!mediaMetadata.getImages().isEmpty()) {
-            try {
-                // remove encoded braces
-                imageUrlString = URLDecoder.decode(mediaMetadata.getImages().get(0).getUrl().toString(), "UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                LOG.error("No Images found in MediaInfo");
-            }
-        }
+
         boolean isLive = mediaInfo.getStreamType() == MediaInfo.STREAM_TYPE_LIVE;
         boolean isLinear = VideoCastManager.isMediaInfoLinearStream(mediaInfo);
         String resourceUrl = getContentUrlFromMediaInfo(mediaInfo);
         String contextualResourceUrl = getPlaylistFromMediaInfo(mediaInfo);
-        return new QueueItem(videoId, resourceUrl, contextualResourceUrl, title, subtitle, imageUrlString, queueItem.getItemId(), isLive, (int) mediaInfo.getStreamDuration(), isManualQueueItem, isLinear);
+        return new QueueItem(videoId, resourceUrl, contextualResourceUrl, title, subtitle, queueItem.getItemId(), isLive, (int) mediaInfo.getStreamDuration(), isManualQueueItem, isLinear);
     }
 
     private boolean isManualItem(MediaInfo mediaInfo) {
