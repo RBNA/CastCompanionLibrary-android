@@ -70,8 +70,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -133,7 +131,6 @@ public class VideoCastManager extends BaseCastManager
     public static final String CUSTOM_ITEM_QUEUE_TYPE_MANUAL = "queue";
     public static final String CUSTOM_ITEM_QUEUE_TYPE_PLAYLIST = "playlist";
 
-    public static final String CUSTOM_ITEM_CONTENT_URL = "contentUrl";
     public static final String CUSTOM_ITEM_PLAYLIST_ID = "playlist";
     public static final String CUSTOM_ITEM_CONTINUOUS_PLAY = "continuous";
 
@@ -337,9 +334,8 @@ public class VideoCastManager extends BaseCastManager
 
         boolean isLive = mediaInfo.getStreamType() == MediaInfo.STREAM_TYPE_LIVE;
         boolean isLinear = VideoCastManager.isMediaInfoLinearStream(mediaInfo);
-        String resourceUrl = getContentUrlFromMediaInfo(mediaInfo);
-        String contextualResourceUrl = getPlaylistFromMediaInfo(mediaInfo);
-        return new QueueItem(videoId, resourceUrl, contextualResourceUrl, title, subtitle, queueItem.getItemId(), isLive, (int) mediaInfo.getStreamDuration(), isManualQueueItem, isLinear);
+        String playlistId = getPlaylistFromMediaInfo(mediaInfo);
+        return new QueueItem(videoId, playlistId, title, subtitle, queueItem.getItemId(), isLive, (int) mediaInfo.getStreamDuration(), isManualQueueItem, isLinear);
     }
 
     private boolean isManualItem(MediaInfo mediaInfo) {
@@ -351,18 +347,6 @@ public class VideoCastManager extends BaseCastManager
             LOG.error("No CustomData in MediaInfo");
         }
         return false;
-    }
-
-    private String getContentUrlFromMediaInfo(MediaInfo mediaInfo) {
-        try {
-            return mediaInfo.getCustomData().getString(CUSTOM_ITEM_CONTENT_URL);
-        } catch (JSONException e) {
-            LOG.error("No Content found in Custom Data");
-        } catch (NullPointerException e) {
-            LOG.error("No CustomData in MediaInfo");
-        }
-
-        return null;
     }
 
     private String getPlaylistFromMediaInfo(MediaInfo mediaInfo) {
