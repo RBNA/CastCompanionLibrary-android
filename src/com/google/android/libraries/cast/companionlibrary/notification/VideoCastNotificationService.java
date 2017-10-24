@@ -17,6 +17,7 @@
 package com.google.android.libraries.cast.companionlibrary.notification;
 
 import android.app.Notification;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -24,10 +25,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
-import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaMetadata;
@@ -73,11 +75,23 @@ public class VideoCastNotificationService extends Service {
     private FetchBitmapTask mBitmapDecoderTask;
     private int mDimensionInPixels;
 
+    private static final String NOTIFICATION_CHANNEL_ID = "RedBullCast";
+    private static final String NOTIFICATION_CHANNEL_NAME = "Red Bull TV Cast";
+    private static final String NOTIFICATION_CHANNEL_DESCRIPTION = "Red Bull TV Description";
+
     @Override
     public void onCreate() {
         super.onCreate();
-        mDimensionInPixels = Utils.convertDpToPixel(VideoCastNotificationService.this,
-                                                    getResources().getDimension(R.dimen.ccl_notification_image_size));
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_ID,
+                                                                  NOTIFICATION_CHANNEL_NAME,
+                                                                  NotificationManager.IMPORTANCE_LOW);
+            channel.setDescription(NOTIFICATION_CHANNEL_DESCRIPTION);
+            ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).createNotificationChannel(channel);
+        }
+
+        mDimensionInPixels = Utils.convertDpToPixel(VideoCastNotificationService.this, getResources().getDimension(R.dimen.ccl_notification_image_size));
         mCastManager = VideoCastManager.getInstance();
         readPersistedData();
         if (!mCastManager.isConnected() && !mCastManager.isConnecting()) {
@@ -217,6 +231,7 @@ public class VideoCastNotificationService extends Service {
                             | TransientNetworkDisconnectionException e) {
                         LOGE(TAG, "Failed to set notification for " + info.toString(), e);
                     }
+
                     if (mVisible && (mNotification != null)) {
                         startForeground(NOTIFICATION_ID, mNotification);
                     }
@@ -233,8 +248,7 @@ public class VideoCastNotificationService extends Service {
      * Removes the existing notification.
      */
     private void removeNotification() {
-        ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).
-                                                                                      cancel(NOTIFICATION_ID);
+        ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).cancel(NOTIFICATION_ID);
     }
 
     private void onRemoteMediaPlayerStatusUpdated(int mediaStatus) {
@@ -346,7 +360,7 @@ public class VideoCastNotificationService extends Service {
         int pauseOrPlayTextResourceId = isPlaying ? R.string.ccl_pause : R.string.ccl_play;
 
         NotificationCompat.Builder builder
-                = (NotificationCompat.Builder) new NotificationCompat.Builder(this)
+                = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_system)
                 .setContentTitle(metadata.getString(MediaMetadata.KEY_TITLE))
                 .setContentText(castingTo)
@@ -361,9 +375,9 @@ public class VideoCastNotificationService extends Service {
 
         if (!VideoCastManager.isMediaInfoLinearStream(info)) {
             builder.addAction(isPlaying ? pauseOrStopResourceId : R.drawable.ic_notification_play_48dp, getString(pauseOrPlayTextResourceId), playbackPendingIntent).
-                    setStyle(new NotificationCompat.MediaStyle().setShowActionsInCompactView(0, 1).setMediaSession(mCastManager.getMediaSessionCompatToken()));
+                    setStyle(new android.support.v4.media.app.NotificationCompat.MediaStyle().setShowActionsInCompactView(0, 1).setMediaSession(mCastManager.getMediaSessionCompatToken()));
         } else {
-            builder.setStyle(new NotificationCompat.MediaStyle().setShowActionsInCompactView(0).setMediaSession(mCastManager.getMediaSessionCompatToken()));
+            builder.setStyle(new android.support.v4.media.app.NotificationCompat.MediaStyle().setShowActionsInCompactView(0).setMediaSession(mCastManager.getMediaSessionCompatToken()));
         }
 
 
