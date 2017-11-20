@@ -17,14 +17,13 @@
 apply plugin: 'com.android.library'
 
 android {
-    publishNonDefault true
-
     compileSdkVersion compile_sdk_version
     buildToolsVersion build_tools_version
 
     defaultConfig {
         minSdkVersion app_min_sdk_version
         targetSdkVersion app_target_sdk_version
+        missingDimensionStrategy flavor_dimension, 'googlePlay', 'amazon'
     }
 
     sourceSets {
@@ -55,8 +54,8 @@ repositories {
 }
 
 dependencies {
-    compile project(':rbtv-core')
-    compile "com.android.support:appcompat-v7:$support_version"
-    compile "com.android.support:mediarouter-v7:$support_version"
-    compile "com.google.android.gms:play-services-cast:$play_services_version"
+    api project(':rbtv-core')
+    api "com.android.support:appcompat-v7:$support_version"
+    api "com.android.support:mediarouter-v7:$support_version"
+    api "com.google.android.gms:play-services-cast:$play_services_version"
 }
