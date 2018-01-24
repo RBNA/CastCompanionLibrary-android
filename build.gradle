@@ -25,14 +25,6 @@ android {
         targetSdkVersion app_target_sdk_version
         missingDimensionStrategy flavor_dimension, 'googlePlay', 'amazon'
     }
-
-    sourceSets {
-        main {
-            manifest.srcFile 'AndroidManifest.xml'
-            java.srcDirs = ['src']
-            res.srcDirs = ['res']
-        }
-    }
 }
 
 dependencies {
