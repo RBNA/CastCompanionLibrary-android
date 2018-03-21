@@ -2126,7 +2126,7 @@ public class VideoCastManager extends BaseCastManager
         int currentItemId = mMediaStatus.getCurrentItemId();
         if (queueItems != null && !queueItems.isEmpty()) {
             for (MediaQueueItem item : queueItems) {
-                LOGD(TAG, "[queue] Queue Item is: " + item.toJson());
+//                LOGD(TAG, "[queue] Queue Item is: " + item.toJson());
             }
         }
 
