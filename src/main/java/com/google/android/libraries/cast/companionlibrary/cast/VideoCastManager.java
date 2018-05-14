@@ -284,7 +284,7 @@ public class VideoCastManager extends BaseCastManager
             throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         checkRemoteMediaPlayerAvailable();
-        if (mRemoteMediaPlayer.getStreamDuration() > 0 || isRemoteStreamLive()) {
+        //if (mRemoteMediaPlayer.getStreamDuration() > 0 || isRemoteStreamLive()) {
             MediaInfo mediaInfo = getRemoteMediaInformation();
             MediaMetadata mm = mediaInfo.getMetadata();
             CastItem castItem = createCastItemFromMediaInfo(mediaInfo);
@@ -300,7 +300,7 @@ public class VideoCastManager extends BaseCastManager
                 controller.setTitle(mm.getString(MediaMetadata.KEY_TITLE));
                 controller.setIcon(mediaInfo.getContentId());
             }
-        }
+        //}
     }
 
     public CastItem createCastItemFromMediaInfo(MediaInfo mediaInfo) {
