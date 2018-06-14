@@ -286,19 +286,23 @@ public class VideoCastManager extends BaseCastManager
         checkRemoteMediaPlayerAvailable();
         //if (mRemoteMediaPlayer.getStreamDuration() > 0 || isRemoteStreamLive()) {
             MediaInfo mediaInfo = getRemoteMediaInformation();
-            MediaMetadata mm = mediaInfo.getMetadata();
-            CastItem castItem = createCastItemFromMediaInfo(mediaInfo);
-            controller.setCastItem(castItem);
-            controller.setPlaybackStatus(mState, mIdleReason);
-            updateProgress();
-            if (miniControllerUpdater != null) {
-                miniControllerUpdater.updateMiniController(controller, castItem);
-            } else {
+            if (mediaInfo != null) {
+                MediaMetadata mm = mediaInfo.getMetadata();
+                CastItem castItem = createCastItemFromMediaInfo(mediaInfo);
                 controller.setCastItem(castItem);
-                controller.setSubtitle(mContext.getResources().getString(R.string.ccl_casting_to_device,
-                                                                         mDeviceName));
-                controller.setTitle(mm.getString(MediaMetadata.KEY_TITLE));
-                controller.setIcon(mediaInfo.getContentId());
+                controller.setPlaybackStatus(mState, mIdleReason);
+                updateProgress();
+                if (miniControllerUpdater != null) {
+                    miniControllerUpdater.updateMiniController(controller, castItem);
+                } else {
+                    controller.setCastItem(castItem);
+                    controller.setSubtitle(mContext.getResources().getString(R.string.ccl_casting_to_device,
+                                                                             mDeviceName));
+                    controller.setTitle(mm.getString(MediaMetadata.KEY_TITLE));
+                    controller.setIcon(mediaInfo.getContentId());
+                }
+            } else {
+                LOG.error("Cannot updateMiniController, no media info!");
             }
         //}
     }
